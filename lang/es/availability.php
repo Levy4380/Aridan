@@ -11,6 +11,7 @@ return [
     'nights' => '{1} 1 noche|[2,*] :count noches',
     'summary_range' => 'del :from al :to',
     'invalid_dates' => 'La salida tiene que ser posterior a la entrada.',
+    'people_prompt' => 'Ingresá cuántas personas son (1 o más) para ver los departamentos.',
 
     'available' => 'Disponibles (:count)',
     'none_available' => 'No hay departamentos libres para esas fechas. Revisá los ocupados por reservas movibles, más abajo.',

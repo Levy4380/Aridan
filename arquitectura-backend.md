@@ -238,7 +238,7 @@ En `app/Queries`, sin efectos secundarios.
   - **slots libres antes y después del rango** (`freeSlotsBefore`, `freeSlotsAfter`), contados sin límite de mes y hasta la reserva anterior o siguiente, con un tope razonable (ej. 60 días)
 
 ### `ApartmentSuggestions`
-Es parte del producto: el buscador y el modal de alta la usan. Ordena el resultado de `AvailabilityQuery` y lo separa en tres grupos: disponibles, ocupados solo por reservas movibles y no disponibles. Es la evolución de las prioridades del buscador de la planilla. Orden de los disponibles:
+Es parte del producto: el buscador y el drawer de alta la usan. Ordena el resultado de `AvailabilityQuery` y lo separa en tres grupos: disponibles, ocupados solo por reservas movibles y no disponibles. Es la evolución de las prioridades del buscador de la planilla. Orden de los disponibles:
 1. **Ajuste de capacidad:** exacta > más grande (penaliza el exceso) > más chica, que exige adicionales.
 2. **Fragmentación:** cuántos días quedan sueltos antes y después. Menos es mejor. Ejemplo: un departamento libre solo el 10 y el 11 gana frente a otro libre toda la semana.
 3. **Desempate:** `apartments.sort_order`.
@@ -269,8 +269,8 @@ Queda aislada en su propia clase para poder ajustar los pesos sin tocar nada má
 | URL (español) | Nombre (inglés) | Pantalla |
 |---|---|---|
 | `/calendario` | `calendar` | Grilla de ocupación (inicio) |
-| `/buscador` | `availability` | Búsqueda de disponibilidad. Es la única entrada para una reserva nueva: el alta se hace en un modal dentro de esta pantalla. |
-| `/reservas/{reservation}` | `reservations.edit` | Edición, movimiento y cancelación |
+| `/buscador` | `availability` | Búsqueda de disponibilidad. Es la única entrada para una reserva nueva: el alta se hace en un drawer dentro de esta pantalla. |
+| `/reservas/{reservation}` | `reservations.show` | Abre el calendario en el mes de la reserva con su panel (detalle, edición, movimiento y cancelación). |
 | `/departamentos` | `apartments.index` | ABM de departamentos |
 | `/clientes` | `guests.index` | Listado y edición de clientes |
 | `/empleados` | `employees.index` | Alta, edición, color y activación de empleados |

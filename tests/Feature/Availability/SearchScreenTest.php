@@ -44,6 +44,31 @@ test('a checkout before the check-in shows an error instead of results', functio
         ->assertDontSee(__('availability.best'));
 });
 
+test('an empty or zero people field waits instead of failing or searching', function () {
+    Apartment::factory()->create(['number' => '102']);
+
+    Livewire::test(Search::class)
+        ->set('people', '')
+        ->assertOk()
+        ->assertSee(__('availability.people_prompt'))
+        ->assertDontSee(__('availability.best'))
+        ->set('people', '0')
+        ->assertSee(__('availability.people_prompt'))
+        ->set('people', '4')
+        ->assertDontSee(__('availability.people_prompt'))
+        ->assertSee(__('availability.available', ['count' => 1]));
+
+    $this->get(route('availability', ['personas' => '']))->assertOk()->assertSee(__('availability.people_prompt'));
+});
+
+test('the whole row of the apartments and employees tables opens the drawer', function () {
+    Apartment::factory()->create();
+
+    // The edit button is stretched over its row: one click target, still a real button.
+    $this->get(route('apartments.index'))->assertSee('relative cursor-pointer', escape: false)->assertSee('after:absolute after:inset-0', escape: false);
+    $this->get(route('employees.index'))->assertSee('relative cursor-pointer', escape: false)->assertSee('after:absolute after:inset-0', escape: false);
+});
+
 test('moving the check-in past the checkout keeps the stay one night long', function () {
     Livewire::test(Search::class)
         ->set('checkOut', '2026-11-27')

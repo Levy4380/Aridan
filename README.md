@@ -21,7 +21,7 @@ La idea es **mejorar la gestión sin cambiar la forma de trabajar**:
 
 - **Calendario como el de la planilla:** filas por departamento, días partidos en mañana y tarde, y cada reserva pintada con el color del empleado responsable.
 - **Buscador de disponibilidad:** con las fechas y la cantidad de personas, sugiere el mejor departamento. Prioriza la capacidad justa y lo que menos "parte" la disponibilidad. También muestra qué departamentos se podrían liberar moviendo reservas movibles.
-- **Carga rápida:** del buscador se pasa a un modal con los datos ya fijados. Solo se piden los campos mínimos, y siempre hay un campo libre de observaciones.
+- **Carga rápida:** del buscador se pasa a un drawer con los datos ya fijados. Solo se piden los campos mínimos, y siempre hay un campo libre de observaciones.
 - **Sin choques:** el sistema no deja guardar dos reservas que se pisen en el mismo departamento, ni siquiera por media jornada. Para el resto, avisa pero no bloquea.
 - **Todo queda registrado:** quién es responsable de cada reserva, cuánto se cobró y cómo, si se puede mover y el historial de cada cliente.
 

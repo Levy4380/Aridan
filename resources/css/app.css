@@ -104,6 +104,38 @@
     body {
         font-variant-numeric: tabular-nums;
     }
+
+    /* Everything clickable shows the hand cursor (Tailwind 4 resets buttons
+       to the default arrow). Covers native controls and Flux's elements. */
+    a[href],
+    button:not(:disabled),
+    [role='button']:not([aria-disabled='true']),
+    [role='radio'],
+    [role='menuitem'],
+    [role='menuitemradio'],
+    [role='menuitemcheckbox'],
+    summary,
+    select:not(:disabled),
+    label:has(input:not(:disabled)),
+    input[type='checkbox']:not(:disabled),
+    input[type='radio']:not(:disabled),
+    input[type='color']:not(:disabled),
+    input[type='date']::-webkit-calendar-picker-indicator,
+    ui-radio:not([disabled]),
+    ui-checkbox:not([disabled]),
+    ui-switch:not([disabled]),
+    ui-close,
+    [data-flux-field]:has(ui-checkbox, ui-switch) [data-flux-label] {
+        cursor: pointer;
+    }
+
+    button:disabled,
+    [aria-disabled='true'],
+    ui-radio[disabled],
+    ui-checkbox[disabled],
+    ui-switch[disabled] {
+        cursor: not-allowed;
+    }
 }
 
 /* Calendar: an inactive apartment's row is striped. */

@@ -26,8 +26,12 @@ class Search extends Component
     #[Url(as: 'salida')]
     public string $checkOut = '';
 
+    /**
+     * Kept as typed (a string): while the employee erases it to write another
+     * number it can be empty, and that must not break nor search.
+     */
     #[Url(as: 'personas')]
-    public int|string $people = 2;
+    public string $people = '2';
 
     #[Url(as: 'temprana')]
     public bool $earlyCheckIn = false;
@@ -64,14 +68,26 @@ class Search extends Component
     public function render(ApartmentSuggestions $suggestions, AvailabilityQuery $availability): View
     {
         $stay = $this->stay();
-        $people = max(1, (int) $this->people);
+        $people = $this->peopleCount();
+        $searching = $stay && $people;
 
         return view('livewire.availability.search', [
             'stay' => $stay,
             'peopleCount' => $people,
-            'suggestions' => $stay ? $suggestions(new AvailabilitySearch($stay, $people)) : null,
-            'mapDays' => $stay ? $this->mapDays($availability, $stay) : [],
+            'suggestions' => $searching ? $suggestions(new AvailabilitySearch($stay, $people)) : null,
+            'mapDays' => $searching ? $this->mapDays($availability, $stay) : [],
         ])->title(__('availability.title'));
+    }
+
+    /**
+     * The number of people, or null while the field doesn't hold a number
+     * greater than 0 (nothing is searched until it does).
+     */
+    public function peopleCount(): ?int
+    {
+        $people = trim($this->people);
+
+        return ctype_digit($people) && (int) $people > 0 ? min((int) $people, 30) : null;
     }
 
     private function stay(): ?StayRange

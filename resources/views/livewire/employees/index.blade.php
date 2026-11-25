@@ -18,12 +18,12 @@
             </thead>
             <tbody>
                 @foreach ($this->employees as $employee)
-                    <tr wire:key="employee-{{ $employee->id }}" class="border-b border-divider-soft last:border-0 hover:bg-accent-softer">
+                    <tr wire:key="employee-{{ $employee->id }}" class="relative cursor-pointer border-b border-divider-soft last:border-0 hover:bg-accent-softer">
                         <td class="px-4 py-2">
                             <button
                                 type="button"
                                 wire:click="edit({{ $employee->id }})"
-                                class="flex items-center gap-2.5 font-semibold hover:text-accent {{ $employee->is_active ? 'text-ink' : 'text-disabled' }}"
+                                class="flex items-center gap-2.5 font-semibold after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent {{ $employee->is_active ? 'text-ink' : 'text-disabled' }}"
                                 aria-label="{{ __('employees.edit_label', ['name' => $employee->name]) }}"
                             >
                                 <x-employee-avatar :user="$employee" :size="28" />
@@ -41,7 +41,7 @@
         </table>
     </div>
 
-    <flux:modal wire:model.self="showForm" class="w-full md:w-[580px]">
+    <flux:modal variant="flyout" wire:model.self="showForm" class="w-full md:w-[560px]">
         <form wire:submit="save" class="flex flex-col gap-5">
             <div class="flex items-center gap-3">
                 <h2 class="text-[20px] font-bold text-ink">

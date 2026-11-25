@@ -9,16 +9,17 @@
     color. A clipped side (the stay continues outside the window) is square
     and shows a chevron.
 --}}
-<div
+<button
+    type="button"
+    wire:click="$dispatch('open-reservation', { id: {{ $block->reservationId }} })"
     {{ $attributes->except('style')->class([
-        'relative z-10 my-[5px] flex min-w-0 flex-col justify-center overflow-hidden border border-[rgba(20,22,26,0.22)] px-1.5 leading-[15px]',
+        'relative z-10 my-[5px] flex min-w-0 cursor-pointer flex-col items-stretch justify-center overflow-hidden border text-left hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent border-[rgba(20,22,26,0.22)] px-1.5 leading-[15px]',
         'rounded-l-[3px]' => ! $block->clipLeft,
         'rounded-r-[3px]' => ! $block->clipRight,
         'reservation-highlight' => $highlighted,
     ]) }}
     @if ($highlighted) x-init="$el.scrollIntoView({ block: 'center', inline: 'center' })" @endif
     style="{{ $attributes->get('style') }} background-color: {{ $block->color }}; color: {{ $block->textColor }};"
-    role="img"
     aria-label="{{ $block->ariaLabel }}"
     title="{{ $block->ariaLabel }}"
 >
@@ -51,4 +52,4 @@
             @endif
         @endforeach
     </div>
-</div>
+</button>

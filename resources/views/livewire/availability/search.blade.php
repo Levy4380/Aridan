@@ -22,15 +22,22 @@
                     'from' => $stay->checkIn->locale('es')->isoFormat('ddd').' '.\App\Support\Format::date($stay->checkIn),
                     'to' => $stay->checkOut->locale('es')->isoFormat('ddd').' '.\App\Support\Format::date($stay->checkOut),
                 ]) }}
-                · {{ \App\Support\Format::people($peopleCount) }}
+                @if ($peopleCount)
+                    · {{ \App\Support\Format::people($peopleCount) }}
+                @endif
             </p>
         @endif
     </div>
 
-    @unless ($stay)
+    @if (! $stay)
         <flux:callout variant="danger" icon="exclamation-circle">
             <flux:callout.text>{{ __('availability.invalid_dates') }}</flux:callout.text>
         </flux:callout>
+    @elseif (! $peopleCount)
+        {{-- Not an error: the field may be empty while typing. Just wait. --}}
+        <div class="rounded-ui border border-border bg-surface p-6 text-center text-sm text-subtle" role="status" data-test="people-prompt">
+            {{ __('availability.people_prompt') }}
+        </div>
     @else
         <div class="flex flex-col gap-4" wire:loading.class="opacity-60">
             {{-- Group 1: available --}}
@@ -154,7 +161,7 @@
                 </section>
             @endif
         </div>
-    @endunless
+    @endif
 
     <livewire:reservations.create-form />
 </div>

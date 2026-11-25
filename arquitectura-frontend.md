@@ -15,10 +15,10 @@ Documento de diseño del frontend del organizador de reservas, armado a partir d
 | 1 | Calendario | `/calendario` | `calendar` | Página (inicio) | `Calendar\Index` |
 | 2 | Detalle de reserva | `/calendario?reserva={id}` y `/reservas/{reservation}` | `reservations.show` | Panel lateral sobre el calendario | `Reservations\Panel` |
 | 3 | Editar reserva | mismo panel, modo edición | `reservations.edit` | Panel lateral | `Reservations\Panel` (modo `edit`) |
-| 4 | Buscador + Nueva reserva | `/buscador` | `availability` | Página + modal | `Availability\Search` + `Reservations\CreateForm` |
-| 5 | Clientes | `/clientes` | `guests.index` | Página + modal | `Guests\Index` |
-| 6 | Departamentos | `/departamentos` | `apartments.index` | Página + modal | `Apartments\Index` |
-| 7 | Empleados | `/empleados` | `employees.index` | Página + modal | `Employees\Index` |
+| 4 | Buscador + Nueva reserva | `/buscador` | `availability` | Página + drawer | `Availability\Search` + `Reservations\CreateForm` |
+| 5 | Clientes | `/clientes` | `guests.index` | Página + drawer | `Guests\Index` |
+| 6 | Departamentos | `/departamentos` | `apartments.index` | Página + drawer | `Apartments\Index` |
+| 7 | Empleados | `/empleados` | `employees.index` | Página + drawer | `Employees\Index` |
 | — | Login, perfil, contraseña | las del starter kit | las del starter kit | Página | starter kit |
 
 El login y la configuración de perfil no están en el mockup: se usan los del starter kit, **restilizados con los tokens de la sección 3** y sin la ruta de registro.
@@ -28,7 +28,7 @@ El login y la configuración de perfil no están en el mockup: se usan los del s
 ```
                 ┌──────────── header: Calendario · Buscador · Clientes · Departamentos · Empleados
                 │
- Calendario ──"Nueva reserva" / "Buscar disponibilidad"──► Buscador ──"Reservar"──► Modal Nueva reserva
+ Calendario ──"Nueva reserva" / "Buscar disponibilidad"──► Buscador ──"Reservar"──► Drawer Nueva reserva
     │  ▲                                                     ▲   ▲                       │  "Cambiar" vuelve al buscador
     │  └────────────── "Guardar reserva" ────────────────────┼───┼───────────────────────┘
     │ click en bloque                                        │   │
@@ -36,9 +36,9 @@ El login y la configuración de perfil no están en el mockup: se usan los del s
  Panel Detalle ──"Editar"──► Panel Editar ──"Cambiar" (fechas/pers./depto)─┘   │
     │  ├─"Mover de departamento" ─► modo Mover ─► "Mover al X" ─► confirmación  │
     │  ├─"Cancelar reserva" ─► confirmación ─► estado Cancelada                  │
-    │  └─"Ver ficha" ─► Clientes (modal del cliente) ─"Nueva reserva para este cliente"
+    │  └─"Ver ficha" ─► Clientes (drawer del cliente) ─"Nueva reserva para este cliente"
     │                                   └─ historial ─► Panel Detalle
- Departamentos (modal) ─ reservas futuras ─► Panel Detalle · "Ver en calendario" ─► Calendario
+ Departamentos (drawer) ─ reservas futuras ─► Panel Detalle · "Ver en calendario" ─► Calendario
 ```
 
 - La navegación principal usa `wire:navigate` (viene con el starter kit) para que el cambio de página no recargue todo.
@@ -87,8 +87,8 @@ El mockup usa **navegación superior**, no barra lateral. El starter kit de Live
 | `faint` | `#6B6E73` | Días de semana, ranking, texto deshabilitado |
 | `disabled` | `#8A8D92` | Número de un depto inactivo |
 | `canvas` | `#F4F4F1` | Fondo de página, tiles de dato, tarjetas de resumen |
-| `surface` | `#FFFFFF` | Tarjetas, tablas, modales, inputs |
-| `surface-alt` | `#FAFAF8` | Encabezados de tabla y de grilla, pie de modales |
+| `surface` | `#FFFFFF` | Tarjetas, tablas, drawers, inputs |
+| `surface-alt` | `#FAFAF8` | Encabezados de tabla y de grilla, pie de drawers |
 | `track` | `#E9E9E4` | Fondo de controles segmentados; "libre" en el mapa de ocupación |
 | `chip` | `#ECECE7` | Badges neutros ("Inactivo", "Pasada", "No disponibles") |
 | `weekend` | `#F7F7F4` / `#F2F2EE` | Columna / encabezado de fin de semana |
@@ -151,7 +151,7 @@ Fijas y movibles se distinguen por **luminosidad**, no solo por tono, para que s
 |---|---|---|
 | H1 de página | 26 / 700, `-0.01em` | "Noviembre 2026", "Clientes" |
 | Título del panel | 22 / 700 | Nombre del huésped en el detalle |
-| Título de modal | 20 / 700 | "Nueva reserva", "Editar reserva" |
+| Título de drawer | 20 / 700 | "Nueva reserva", "Editar reserva" |
 | H2 de sección | 17 / 700 | "Disponibles (6)" |
 | Número de depto | 19 / 700 (buscador), 17 (opciones), 15 (calendario) | |
 | Valor de tile | 16 / 700 | "Pagado · $200.000" |
@@ -164,10 +164,11 @@ Fijas y movibles se distinguen por **luminosidad**, no solo por tono, para que s
 | M / T | 9 | |
 
 ### 3.4 Forma, espacio y elevación
-- **Radios:** 4px en casi todo (botones, inputs, tarjetas), 3px en piezas internas (segmentos, badges), 2px en muestras y cuadraditos del mapa, 6px en modales, círculo en avatares.
-- **Alturas de control:** botón de página 40px; botón de modal o pie 44px (objetivo táctil); input 40–42px; botón de ícono 36×36; segmento 36px dentro de un riel con 3px de padding.
-- **Espaciado:** padding de página 24, de tarjeta 16–18, de modal 22; `gap` 12 entre campos de una grilla, 5 entre etiqueta e input, 20 entre secciones de un formulario.
-- **Elevación:** solo los modales. Sombra `0 20px 50px rgba(0,0,0,0.25)` y fondo de overlay `rgba(21,23,26,0.45)`. Las tarjetas no tienen sombra: se separan con borde.
+- **Radios:** 4px en casi todo (botones, inputs, tarjetas), 3px en piezas internas (segmentos, badges), 2px en muestras y cuadraditos del mapa, 6px en drawers, círculo en avatares.
+- **Alturas de control:** botón de página 40px; botón de drawer o pie 44px (objetivo táctil); input 40–42px; botón de ícono 36×36; segmento 36px dentro de un riel con 3px de padding.
+- **Espaciado:** padding de página 24, de tarjeta 16–18, de drawer 22; `gap` 12 entre campos de una grilla, 5 entre etiqueta e input, 20 entre secciones de un formulario.
+- **Elevación:** solo los drawers. Fondo de overlay `rgba(21,23,26,0.45)`. Las tarjetas no tienen sombra: se separan con borde.
+- **No hay modales centrados: todo se abre en un drawer.** Un drawer es un panel que entra desde la derecha (`flux:modal variant="flyout"`, 560px en escritorio, ancho completo en pantallas chicas) y deja ver la pantalla de fondo. Se usa para el alta de reserva, el detalle de reserva, y las fichas de depto, empleado y cliente. Las confirmaciones (cancelar una reserva) van dentro del mismo drawer, no en una ventana aparte.
 - **Iconos:** de trazo, 13–20px, `stroke-width` 2–2.6, en `currentColor`. Flux trae Heroicons; los que no existen ahí van como componentes Blade propios (ver 4.3).
 
 ### 3.5 Implementación en Tailwind 4 + Flux
@@ -240,8 +241,7 @@ Flux es la única librería de componentes (regla del proyecto). Algunos compone
 | Interruptor "Activo" | `flux:switch` (en el mockup es un checkbox; un switch se entiende mejor) | — |
 | Control segmentado (Pendiente/Señado/Pagado, Mes/2 semanas) | `flux:radio.group variant="segmented"` | `<x-ui.segmented>` |
 | Radio en tarjeta (elegir depto) | `flux:radio.group variant="cards"` | `<x-ui.radio-card>` |
-| Modal centrado (alta, fichas) | `flux:modal` | — |
-| Panel lateral (detalle de reserva) | `flux:modal variant="flyout"` | — |
+| Drawer (todo formulario o ficha: alta de reserva, detalle, depto, empleado, cliente) | `flux:modal variant="flyout"` | — |
 | Badge de estado | `flux:badge` (colores `green`, `zinc`, `blue`, `red`, `orange`) | — |
 | Avisos (advertencia, error, éxito) | `flux:callout` (`variant="warning"`, `"danger"`, `"success"`) | `<x-ui.callout>` |
 | Avatar con iniciales | `flux:avatar` | — |
@@ -256,16 +256,16 @@ Son piezas del dominio que se repiten en varias pantallas. Son Blade anónimos (
 
 | Componente | Props | Dónde se usa | Descripción |
 |---|---|---|---|
-| `<x-employee-swatch>` | `color`, `size` | Leyenda, pie de modales, detalle, historial | Cuadrado 10–12px con el color del empleado y borde translúcido. |
+| `<x-employee-swatch>` | `color`, `size` | Leyenda, pie de drawers, detalle, historial | Cuadrado 10–12px con el color del empleado y borde translúcido. |
 | `<x-status-badge>` | `status` | ABM, historial | Badge 12px/700: Activo / Inactivo / Próxima / En curso / Pasada / Cancelada, con su par de colores. |
-| `<x-section-title>` | slot | Modales y panel | El *eyebrow* en mayúsculas. |
-| `<x-stay-summary>` | `stay`, `changeUrl` | Modal Nueva reserva, Editar | Tarjeta `canvas` con ícono de calendario, "dom 08/11 (tarde) → jue 12/11 (mañana)", "4 noches · 3 personas…" y botón **Cambiar**. |
-| `<x-apartment-option>` | `apartment`, `fit`, `gap`, `best`, `selected` | Modal Nueva reserva, modo Mover | Tarjeta-radio: número, capacidad + ajuste, días sueltos y badge "Mejor opción". Seleccionada: borde 2px `accent` y fondo `accent-softer`. |
+| `<x-section-title>` | slot | Drawers y panel | El *eyebrow* en mayúsculas. |
+| `<x-stay-summary>` | `stay`, `changeUrl` | Drawer Nueva reserva, Editar | Tarjeta `canvas` con ícono de calendario, "dom 08/11 (tarde) → jue 12/11 (mañana)", "4 noches · 3 personas…" y botón **Cambiar**. |
+| `<x-apartment-option>` | `apartment`, `fit`, `gap`, `best`, `selected` | Drawer Nueva reserva, modo Mover | Tarjeta-radio: número, capacidad + ajuste, días sueltos y badge "Mejor opción". Seleccionada: borde 2px `accent` y fondo `accent-softer`. |
 | `<x-fit-badge>` | `capacity`, `people` | Buscador | "Capacidad justa" (verde), "Sobra 1 lugar" / "Sobran N" (azul), "Falta 1 · colchón" / "Faltan N · colchones" (naranja). |
 | `<x-occupancy-map>` | `days`, `label` | Buscador | Fila de cuadrados de 26px por día, partidos en M y T por una línea blanca de 1px. Borde 2px naranja en los días pedidos. `role="img"` + `aria-label`, y `title` por día ("mar 10/11 · Ana Gómez (movible)"). |
-| `<x-guest-card>` | `guest`, `action` | Modal Nueva reserva, Editar, Detalle | Avatar negro con iniciales + nombre + "Tel. … · DNI … · N reservas" + acción ("Cambiar" o "Ver ficha"). Si no hay DNI dice "DNI sin cargar". |
+| `<x-guest-card>` | `guest`, `action` | Drawer Nueva reserva, Editar, Detalle | Avatar negro con iniciales + nombre + "Tel. … · DNI … · N reservas" + acción ("Cambiar" o "Ver ficha"). Si no hay DNI dice "DNI sin cargar". |
 | `<x-stat-tile>` | `label`, `value`, `icon?` | Detalle | Tile `canvas` con etiqueta 12px y valor 16px/700. |
-| `<x-extra-toggle>` | `extra`, `pressed` | Modal Nueva reserva, Editar | Botón 44px con ícono + nombre y `aria-pressed`. Activo: borde 2px `accent` y fondo `accent-softer`. |
+| `<x-extra-toggle>` | `extra`, `pressed` | Drawer Nueva reserva, Editar | Botón 44px con ícono + nombre y `aria-pressed`. Activo: borde 2px `accent` y fondo `accent-softer`. |
 | `<x-stepper>` | `model`, `min`, `max`, `label` | Colchones extra | − / valor / +, 40×42, con `aria-label` en los botones y `aria-live` en el valor. Rango 0–6. |
 | `<x-color-swatches>` | `palette`, `selected`, `takenBy` | Empleados | Muestras de 44×44; la elegida con tilde y doble anillo (blanco + `accent`); las usadas por otro llevan **su inicial**. Más el `<input type="color">` "Otro color". |
 | `<x-reservation-block>` | `block` | Calendario | El bloque de la reserva (ver 5.1). |
@@ -361,7 +361,7 @@ Es un **panel lateral (flyout) de ~560px** que se abre sobre el calendario. Tamb
 **Contenido**
 1. **Encabezado:** muestra del color + "Responsable: Tomás · 02/11/2026"; nombre del huésped en 22px (tachado si está cancelada); "Depto 205 · dom 8/11 (tarde) al jue 12/11 (mañana) · 4 noches"; botón × para cerrar.
 2. **Tiles 2×2:** Personas ("3 · capacidad 4"), Pago ("Pagado · $200.000"), Condición ("No movible", con candado, o "Movible"), Extras ("Ninguno" o la lista).
-3. **Cliente:** `<x-guest-card>` con "Ver ficha" (abre el modal en Clientes).
+3. **Cliente:** `<x-guest-card>` con "Ver ficha" (abre el drawer en Clientes).
 4. **Nota de la reserva:** el texto libre tal cual.
 5. **Acciones:** **Editar** (primario) · **Mover de departamento** (secundario) · **Cancelar reserva** (texto rojo, borde rojo suave, alineado a la derecha).
 
@@ -392,7 +392,7 @@ Mismo panel, modo `edit`, ~580px. Edita **lo que no cambia la ocupación**. Para
 
 El responsable **se puede cambiar al editar**, por ejemplo cuando otro empleado cargó una reserva que hizo un compañero. El historial de quién modificó qué es de la próxima iteración.
 
-### 5.4 Buscador (`/buscador`) + modal Nueva reserva
+### 5.4 Buscador (`/buscador`) + drawer Nueva reserva
 
 **La única puerta de entrada para una reserva nueva.**
 
@@ -419,13 +419,13 @@ El responsable **se puede cambiar al editar**, por ejemplo cuando otro empleado 
 
 **Grupo 3 — No disponibles:** chips grises en una línea: "105 · ocupado", "306 · inactivo".
 
-**Modal "Nueva reserva"** (`Reservations\CreateForm`, centrado, 580px)
+**Drawer "Nueva reserva"** (`Reservations\CreateForm`, panel lateral, 560px)
 
 Se abre al tocar "Reservar". Recibe las fechas, personas, flags y el depto elegido, **ya fijados**.
 
 | Sección | Contenido | Reglas |
 |---|---|---|
-| Resumen | `<x-stay-summary>`: "lun 09/11 (tarde) → jue 12/11 (mañana)", "3 noches · 3 personas" (+ "entrada temprana"/"salida tardía") | **Cambiar** cierra el modal y deja el buscador como estaba. |
+| Resumen | `<x-stay-summary>`: "lun 09/11 (tarde) → jue 12/11 (mañana)", "3 noches · 3 personas" (+ "entrada temprana"/"salida tardía") | **Cambiar** cierra el drawer y deja el buscador como estaba. |
 | Departamento | Radio de **3 opciones**: el elegido + los mejores siguientes, en orden de ranking, con el elegido marcado y "Mejor opción" en el primero | Se puede cambiar sin volver al buscador. |
 | Cliente | `GuestPicker` (ver 5.5) | Obligatorio. |
 | Pago | Segmentado **Pendiente / Señado / Pagado** (por defecto Señado). Si no es Pendiente: Tipo de pago (Transferencia / Efectivo) + Monto cobrado. Si es Pendiente: "Sin pago todavía: el tipo de pago y el monto se cargan cuando se seña o se paga." | Si falta monto o tipo con Señado/Pagado → advertencia `missing_amount`. |
@@ -437,16 +437,16 @@ Se abre al tocar "Reservar". Recibe las fechas, personas, flags y el depto elegi
 **Al guardar:**
 1. Se calculan las advertencias (`ReservationWarnings`).
 2. Si hay alguna, el pie muestra un callout naranja con la lista, y el botón pasa a **"Guardar igual"**. El sistema avisa, no bloquea.
-3. Se ejecuta `CreateReservation`. Si falla por superposición (otro empleado la cargó al mismo tiempo), se muestra el error en el modal y se recalculan los resultados del buscador.
+3. Se ejecuta `CreateReservation`. Si falla por superposición (otro empleado la cargó al mismo tiempo), se muestra el error en el drawer y se recalculan los resultados del buscador.
 4. Si sale bien, redirige al calendario en la ventana de la reserva, con un aviso de éxito y el bloque nuevo resaltado unos segundos.
 
 **Modo edición del buscador** (`/buscador?reserva=123`): lo abre el "Cambiar" de Editar. Arranca con los datos de la reserva, muestra una franja "Cambiando fechas de la reserva de Raúl Silva" con un link para volver, y calcula la disponibilidad **excluyendo esa reserva**. El botón de cada fila dice **"Usar este"** y abre una confirmación corta que ejecuta `UpdateReservation`.
 
-**Desde un cliente** (`/buscador?cliente=45`): lo abre "Nueva reserva para este cliente". El modal arranca con ese cliente ya elegido.
+**Desde un cliente** (`/buscador?cliente=45`): lo abre "Nueva reserva para este cliente". El drawer arranca con ese cliente ya elegido.
 
 ### 5.5 Selector de cliente (`Guests\GuestPicker`)
 
-Lo usan el modal Nueva reserva y el panel Editar. **Implementado como trait** (`App\Livewire\Concerns\PicksGuest`) **+ vista parcial** (`livewire/partials/guest-picker`), no como componente anidado: el cliente nuevo se crea junto con la reserva, así que sus datos tienen que viajar en el mismo formulario. Implementa el flujo de búsqueda de clientes de arquitectura-backend.md:
+Lo usan el drawer Nueva reserva y el panel Editar. **Implementado como trait** (`App\Livewire\Concerns\PicksGuest`) **+ vista parcial** (`livewire/partials/guest-picker`), no como componente anidado: el cliente nuevo se crea junto con la reserva, así que sus datos tienen que viajar en el mismo formulario. Implementa el flujo de búsqueda de clientes de arquitectura-backend.md:
 
 1. Input con lupa **"Buscar por teléfono o DNI/CUIT"** (`wire:model.live.debounce.300ms`). `GuestLookup` normaliza y busca.
 2. **Lo encuentra:** `<x-guest-card>` con "Tel. 11 5555-0142 · DNI 30.123.456 · 2 reservas anteriores" y **Cambiar**, que vuelve a la búsqueda.
@@ -454,7 +454,7 @@ Lo usan el modal Nueva reserva y el panel Editar. **Implementado como trait** (`
 4. **Conflicto al cargar uno nuevo:** si el teléfono o el DNI ya existen, callout "Este teléfono ya pertenece a *Martín Fernández*: ¿usar ese cliente?" con el botón **Usar ese cliente**.
 5. Comunica la elección al padre con un evento (`guest-selected`) o con `#[Modelable]`.
 
-> En el mockup, "Cambiar" y "+ Cargar cliente nuevo" llevan a la pantalla Clientes. En la app real **se resuelve dentro del modal**: salir de la carga para crear un cliente rompería el flujo.
+> En el mockup, "Cambiar" y "+ Cargar cliente nuevo" llevan a la pantalla Clientes. En la app real **se resuelve dentro del drawer**: salir de la carga para crear un cliente rompería el flujo.
 
 ### 5.6 Clientes (`/clientes`)
 
@@ -462,7 +462,7 @@ Lo usan el modal Nueva reserva y el panel Editar. **Implementado como trait** (`
 - **Buscador** arriba de la tabla: "Buscar por nombre, teléfono o DNI/CUIT". Ignora puntos, guiones y espacios.
 - **Tabla:** Nombre · Teléfono · DNI/CUIT ("Sin cargar" en gris) · Reservas (sin contar las canceladas) · Última estadía. Cada fila es un botón que abre la ficha. Para pocas filas no hace falta paginar; si crecen, se suma paginación de Livewire.
 - Vacío: "No hay clientes que coincidan. Podés cargar uno nuevo."
-- **Modal de ficha** (580px):
+- **Drawer de ficha** (560px):
   - Título con el nombre + "Cliente desde mar 2025".
   - Campos en 2 columnas: Nombre, Apellido, Teléfono \*, DNI/CUIT (opcional).
   - Si es nuevo: "Si el teléfono o el DNI ya existen, te vamos a ofrecer usar ese cliente en lugar de crear uno repetido."
@@ -473,7 +473,7 @@ Lo usan el modal Nueva reserva y el panel Editar. **Implementado como trait** (`
 
 - Cabecera: "Departamentos" + "17 activos de 18. Un departamento con reservas futuras no se puede desactivar." + **Nuevo departamento**.
 - **Tabla:** Depto · Capacidad · Descripción · Próxima reserva ("En curso · Elena Romero · 22/11–30/11" o "—") · Ocupación (barra de 60×6px en `accent` + %) · Estado (badge).
-- **Modal** (580px): "Depto 105" + badge de estado; Número, Capacidad (personas), Descripción; interruptor **Activo** ("Solo los departamentos activos se pueden reservar.").
+- **Drawer** (560px): "Depto 105" + badge de estado; Número, Capacidad (personas), Descripción; interruptor **Activo** ("Solo los departamentos activos se pueden reservar.").
   - **Bloqueo:** si tiene reservas futuras, el interruptor queda deshabilitado y aparece el callout naranja "No se puede desactivar: tiene 2 reservas futuras. Primero movelas o cancelalas." Es uno de los dos bloqueos duros del sistema; la action `DeactivateApartment` lo vuelve a validar.
   - **Reservas futuras:** lista con color del empleado, huésped y fechas. Cada una abre su panel.
   - Botones **Guardar cambios** / **Crear departamento** y **Ver en calendario**.
@@ -482,7 +482,7 @@ Lo usan el modal Nueva reserva y el panel Editar. **Implementado como trait** (`
 
 - Cabecera: "Empleados" + "Quienes cargan reservas. Cada uno tiene un color, y con ese color se pintan sus reservas en el calendario." + **Nuevo empleado**.
 - **Tabla:** Empleado (avatar con su color e inicial + nombre) · Email (usuario) · Reservas · Estado.
-- **Modal** (580px):
+- **Drawer** (560px):
   - Nombre, Email y, solo al crear, **Contraseña inicial** ("La puede cambiar después desde su perfil." El perfil es el del starter kit).
   - **Color en el calendario:** `<x-color-swatches>` con las 10 muestras. Las que ya usa otro llevan su inicial ("La letra sobre cada color indica quién ya lo usa."), más **Otro color** (`input type="color"`).
   - **Color repetido:** callout naranja "Víctor ya usa este color. Se puede, pero en el calendario no se va a distinguir de quién es cada reserva." (advertencia `color_in_use`, no bloquea).
@@ -497,7 +497,7 @@ Lo usan el modal Nueva reserva y el panel Editar. **Implementado como trait** (`
 
 ### Formularios y validación
 - Cada formulario largo usa un **Livewire Form object** (`App\Livewire\Forms\ReservationForm`, `GuestForm`, `ApartmentForm`, `EmployeeForm`). Ahí viven las reglas de validación de UI; las actions vuelven a validar los errores.
-- **Errores** (bloquean): debajo del campo con `flux:error`, en rojo. Los de dominio que no son de un campo (superposición, depto inactivo) van en un callout rojo arriba del pie del modal.
+- **Errores** (bloquean): debajo del campo con `flux:error`, en rojo. Los de dominio que no son de un campo (superposición, depto inactivo) van en un callout rojo arriba del pie del drawer.
 - **Advertencias** (no bloquean): callout naranja. Las que dependen de un solo campo se muestran **en vivo** (capacidad, color repetido); el resto aparece al guardar, y el botón pasa a "Guardar igual".
 - Obligatorio: asterisco rojo (`danger`). Opcional: "(opcional)" en `subtle`. Se marcan solo los que no son obvios.
 
@@ -525,10 +525,12 @@ El input de monto acepta "$ 80.000", "80000" o "80.000" y lo normaliza al guarda
 
 ### Accesibilidad (se mantiene del mockup)
 - Botones y links reales; nada de `onclick` en un `div`.
+- **Filas de tabla clickeables:** en los ABM, toda la fila abre la ficha. Se hace estirando el botón de la primera celda sobre la fila (`after:absolute after:inset-0` con la fila en `relative`): un solo destino de clic, que sigue siendo un botón real para teclado y lectores de pantalla.
+- **Cursor:** todo lo clickeable muestra la mano (`cursor: pointer`) y lo deshabilitado, `not-allowed`. Está definido una sola vez en `app.css` (capa `base`), así cubre los botones propios y los de Flux sin repetir clases.
 - `aria-label` en los botones de ícono (cerrar, mes anterior/siguiente, −/+ colchones) y en cada bloque del calendario.
 - `aria-pressed` en los toggles de extras y en las muestras de color; `aria-current="page"` en la nav; `role="alert"` / `role="status"` / `role="alertdialog"` en los avisos.
 - Mapa de ocupación con `role="img"` + `aria-label`, y `title` por día.
-- Objetivos táctiles de 44px en las acciones de modales y paneles.
+- Objetivos táctiles de 44px en las acciones de drawers y paneles.
 - Contraste: los grises de texto (`muted`, `subtle`, `faint`) superan 4.5:1 sobre blanco y sobre `canvas`.
 
 ### Responsive
@@ -536,7 +538,7 @@ El input de monto acepta "$ 80.000", "80000" o "80.000" y lo normaliza al guarda
   - El header hace wrap; la nav pasa a segunda línea o a menú.
   - Calendario y buscador: scroll horizontal **dentro de su tarjeta**, con la columna de depto fija.
   - Tablas de los ABM: `min-width` + `overflow-x: auto`.
-  - Modales al 100% del ancho con 16px de margen; el panel lateral ocupa toda la pantalla.
+  - Los drawers ocupan toda la pantalla.
 
 ---
 
@@ -586,7 +588,7 @@ lang/es/
   calendar.php  availability.php  reservations.php  guests.php
   apartments.php  employees.php  warnings.php
 tests/
-  Feature/Livewire/                   # un test por pantalla: renderiza, abre modal, guarda, muestra advertencia
+  Feature/Livewire/                   # un test por pantalla: renderiza, abre drawer, guarda, muestra advertencia
 ```
 
 ---
@@ -596,24 +598,25 @@ tests/
 | # | Tema | Mockup | Documentación | Propuesta |
 |---|---|---|---|---|
 | 1 | Nombre del estado sin pago | "Pendiente" | CLAUDE.md dice "Reservado" | Usar **"Reservado"**, que es como lo llaman hoy. Si se prefiere "Pendiente", actualizar CLAUDE.md. |
-| 2 | Detalle y edición | Dos pantallas separadas | El backend tiene solo `/reservas/{reservation}` = edición | Un solo panel con modos; agregar `reservations.show`. |
+| 2 | Detalle y edición | Dos pantallas separadas | El backend tiene solo `/reservas/{reservation}` = edición | **Hecho:** un solo panel con modos (`Reservations\Panel`); `/reservas/{reservation}` (`reservations.show`) abre el calendario con el panel. |
 | 3 | Cambiar fechas de una reserva existente | "Cambiar" lleva al buscador | El buscador está pensado solo para altas | Sumar el **modo edición del buscador** (5.4). `AvailabilityQuery` necesita un parámetro para excluir una reserva. |
-| 4 | Cliente nuevo desde el modal | Link a la pantalla Clientes | El backend dice "en el mismo formulario" | Resolver dentro del modal con `GuestPicker` (5.5). |
+| 4 | Cliente nuevo desde el drawer | Link a la pantalla Clientes | El backend dice "en el mismo formulario" | Resolver dentro del drawer con `GuestPicker` (5.5). |
 | 5 | Advertencias | Capacidad en vivo, sin paso de confirmación | El backend pide "Confirmar igual" | Las dos cosas: aviso en vivo + "Guardar igual" si quedan advertencias al guardar. |
 | 6 | Datos que el detalle no muestra | Faltan entrada temprana / salida tardía, colchones y tipo de pago | Son campos de la reserva | Agregarlos a los tiles (Personas: "3 + 1 colchón"; Pago: "Pagado · $200.000 · efectivo"; una línea "Entrada temprana" junto a las fechas). |
 | 7 | Columna "Ocupación nov." en Departamentos | Atada al mes | "El mes no existe como entidad" | Calcularla sobre una ventana de fechas (los próximos 30 días o la ventana visible del calendario) y titularla "Ocupación próx. 30 días". |
-| 8 | Orden de los deptos | No se edita en ningún lado | `apartments.sort_order` existe | **Hecho:** campo "Orden" en el modal de departamento. |
+| 8 | Orden de los deptos | No se edita en ningún lado | `apartments.sort_order` existe | **Hecho:** campo "Orden" en el drawer de departamento. |
 | 9 | Modo oscuro | No existe | El starter kit lo trae | Dejar la app fija en claro por ahora. |
 | 10 | Listado de canceladas | Solo aparecen en el historial del cliente | El backend menciona un listado "para control" | Por ahora alcanza con el historial; un filtro "Ver canceladas" en el calendario puede ir en una iteración siguiente. |
 | 11 | "Deshacer (demo)" al cancelar | Existe | No hay "descancelar" | No se implementa. |
+| 12 | Ventanas | Modales centrados (alta de reserva, fichas de depto, empleado y cliente) | — | **Decidido:** no hay modales, todo se abre en un **drawer** lateral, como el detalle de reserva. El mockup no se actualiza: esta tabla registra la diferencia. |
 
 ## 9. Orden de construcción sugerido
 
 1. **Base:** tokens en `app.css`, fuente, layout con header y nav, restyling del login.
-2. **ABM simples:** Departamentos y Empleados (prueban tabla, modal, switch, callout y color). Así hay datos para lo demás.
+2. **ABM simples:** Departamentos y Empleados (prueban tabla, drawer, switch, callout y color). Así hay datos para lo demás.
 3. **Calendario** solo lectura: grilla por slots, bloques, leyenda, feriados, libres por noche.
 4. **Buscador:** formulario en vivo, tres grupos, mapa de ocupación.
-5. **Modal Nueva reserva** + `GuestPicker` + advertencias.
+5. **Drawer Nueva reserva** + `GuestPicker` + advertencias.
 6. **Panel de reserva:** detalle, cancelar, mover, editar.
 7. **Clientes:** tabla, ficha e historial.
 8. Modo edición del buscador y "Nueva reserva para este cliente".

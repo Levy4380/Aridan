@@ -69,7 +69,8 @@ Se despliega en **Laravel Cloud** (plan pago ya contratado).
 ## Principios de producto
 
 - **La vista principal sigue siendo la grilla del Excel:** filas = departamentos, columnas = días partidos en mañana/tarde. Cada reserva es un bloque cuyo **color identifica al empleado responsable** de la reserva, con 3 líneas: huésped / pax, pago y monto / movible y responsable.
-- **Cargar una reserva tiene que ser tan rápido como escribir en una celda.** Toda reserva nueva arranca en el **buscador** (fechas, personas, entrada temprana, salida tardía). "Reservar" en un depto abre un **modal** con esos datos fijados; "Cambiar" vuelve al buscador. Los campos obligatorios son los mínimos.
+- **Cargar una reserva tiene que ser tan rápido como escribir en una celda.** Toda reserva nueva arranca en el **buscador** (fechas, personas, entrada temprana, salida tardía). "Reservar" en un depto abre un **drawer** con esos datos fijados; "Cambiar" vuelve al buscador. Los campos obligatorios son los mínimos.
+- **No hay modales: todo se abre en un drawer** (panel lateral derecho): alta y detalle de reserva, y las fichas de depto, empleado y cliente.
 - **El texto libre se mantiene:** siempre hay observaciones para lo que no entra en campos. Lo que se repetía en el texto de la planilla (pax, monto, movible, entrada temprana, extras) es un campo propio. **El sistema nunca interpreta textos ni palabras clave.**
 - **El sistema avisa, no bloquea**, salvo dos casos: **la superposición de reservas** y **desactivar un departamento con reservas futuras**. Todo lo demás (capacidad, datos incompletos, color repetido) es una advertencia que se confirma con "Guardar igual".
 - **El conocimiento queda en el sistema:** qué empleado es responsable de cada reserva, estado de pago y lo cobrado, si es movible e historial del cliente.
@@ -95,7 +96,7 @@ Se despliega en **Laravel Cloud** (plan pago ya contratado).
 
 ### Clientes (huéspedes)
 - **Nombre** y **apellido**; **teléfono** obligatorio y **único**; **DNI/CUIT** opcional pero **único** cuando se carga. Ambos se guardan **normalizados** (solo dígitos, formato canónico) para que la unicidad funcione.
-- Al crear una reserva se busca el cliente por DNI/CUIT o teléfono; si no existe, se carga en el mismo modal.
+- Al crear una reserva se busca el cliente por DNI/CUIT o teléfono; si no existe, se carga en el mismo drawer.
 - Un cliente puede tener varias reservas, incluso simultáneas (ej. una familia que alquila dos deptos): son **reservas distintas con el mismo cliente**.
 
 ### Reservas
@@ -143,7 +144,7 @@ Con fechas, personas, entrada temprana y salida tardía, el buscador arma tres g
 2. **Ocupados por reservas movibles:** se podrían liberar moviendo reservas con `is_movable = true`.
 3. **No disponibles:** ocupados por reservas fijas, o inactivos.
 
-"Reservar" abre el modal de alta, que sugiere 3 deptos de la lista con el elegido marcado.
+"Reservar" abre el drawer de alta, que sugiere 3 deptos de la lista con el elegido marcado.
 
 ### Feriados
 - Solo referencia visual en el calendario: no afectan ninguna regla.
@@ -164,7 +165,7 @@ Livewire (pantallas)  →  Actions (escriben) / Queries (leen)  →  Eloquent + 
 - **Actions:** `CreateReservation`, `UpdateReservation`, `MoveReservation`, `CancelReservation`, `ActivateApartment` / `DeactivateApartment` y las de empleados. Transaccionales; revalidan los errores, nunca confían en la UI. → backend §5 y §8.
 - **Errores vs. advertencias:** los errores bloquean (`ValidationException`); las advertencias (`capacity_exceeded`, `not_movable`, `missing_amount`, `similar_guest_name`, `color_in_use`) las calcula `ReservationWarnings` y se confirman. → backend §5, frontend §6.
 - **Queries:** `CalendarQuery`, `AvailabilityQuery`, `ApartmentSuggestions`. → backend §6.
-- **Pantallas y rutas:** `/calendario` (inicio), `/buscador` (con el modal de alta), panel lateral de reserva (detalle / editar / mover / cancelar), `/clientes`, `/departamentos`, `/empleados`. El estado importante va en la URL (`#[Url]`). → backend §9, frontend §1 y §5.
+- **Pantallas y rutas:** `/calendario` (inicio), `/buscador` (con el drawer de alta), panel lateral de reserva (detalle / editar / mover / cancelar), `/clientes`, `/departamentos`, `/empleados`. El estado importante va en la URL (`#[Url]`). → backend §9, frontend §1 y §5.
 - **Sistema de diseño:** sobrio, neutros cálidos, un solo acento azul; los colores fuertes son de los empleados. Densidad de planilla, números tabulares, fuente Space Grotesk, tokens en `resources/css/app.css`. → frontend §3.
 - **Componentes:** Flux primero; si algo es de Flux Pro y no hay licencia, componente Blade propio con los tokens. Piezas de dominio como `<x-reservation-block>` y `<x-occupancy-map>`. → frontend §4.
 
