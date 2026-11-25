@@ -1,0 +1,23 @@
+# Local development database. Matches Laravel Cloud's default Postgres version.
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: aridan-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aridan
+      POSTGRES_USER: aridan
+      POSTGRES_PASSWORD: aridan
+    ports:
+      - "5432:5432"
+    volumes:
+      - aridan-postgres:/var/lib/postgresql
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aridan -d aridan"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  aridan-postgres:

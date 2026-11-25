@@ -1,0 +1,62 @@
+<?php
+
+use App\Models\User;
+use Livewire\Livewire;
+
+test('profile page is displayed', function () {
+    $this->actingAs(User::factory()->create());
+
+    $this->get(route('profile.edit'))->assertOk();
+});
+
+test('profile information can be updated', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user);
+
+    Livewire::test('pages::settings.profile')
+        ->set('name', 'Ana Gómez')
+        ->set('email', 'ana@example.com')
+        ->call('updateProfileInformation')
+        ->assertHasNoErrors();
+
+    $user->refresh();
+
+    expect($user->name)->toEqual('Ana Gómez');
+    expect($user->email)->toEqual('ana@example.com');
+});
+
+test('email is stored in lowercase so the employee can still log in', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user);
+
+    Livewire::test('pages::settings.profile')
+        ->set('name', 'Ana Gómez')
+        ->set('email', 'Ana@Example.com')
+        ->call('updateProfileInformation')
+        ->assertHasNoErrors();
+
+    expect($user->refresh()->email)->toEqual('ana@example.com');
+
+    $this->post(route('logout'));
+
+    $this->post(route('login.store'), [
+        'email' => 'Ana@Example.com',
+        'password' => 'password',
+    ]);
+
+    $this->assertAuthenticatedAs($user);
+});
+
+test('email must be unique regardless of case', function () {
+    User::factory()->create(['email' => 'taken@example.com']);
+
+    $this->actingAs(User::factory()->create());
+
+    Livewire::test('pages::settings.profile')
+        ->set('name', 'Ana Gómez')
+        ->set('email', 'Taken@Example.com')
+        ->call('updateProfileInformation')
+        ->assertHasErrors(['email']);
+});

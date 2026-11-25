@@ -1,0 +1,121 @@
+@import 'tailwindcss';
+@import '../../vendor/livewire/flux/dist/flux.css';
+
+@source '../views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../vendor/livewire/flux/stubs/**/*.blade.php';
+
+/* The app is light-only for now (employee colors are designed for a light
+   background), so `dark:` variants only apply under an explicit .dark class,
+   which is never set. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+|--------------------------------------------------------------------------
+| Design tokens (arquitectura-frontend.md, section 3)
+|--------------------------------------------------------------------------
+*/
+@theme {
+    --font-sans: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+
+    /* Neutrals */
+    --color-ink: #15171a;
+    --color-ink-2: #2b2e33;
+    --color-muted: #44474d;
+    --color-subtle: #5e6166;
+    --color-faint: #6b6e73;
+    --color-disabled: #8a8d92;
+    --color-canvas: #f4f4f1;
+    --color-surface: #ffffff;
+    --color-surface-alt: #fafaf8;
+    --color-track: #e9e9e4;
+    --color-chip: #ecece7;
+    --color-weekend: #f7f7f4;
+    --color-weekend-header: #f2f2ee;
+
+    /* Borders */
+    --color-border: #e2e2dc;
+    --color-divider: #e7e7e2;
+    --color-divider-soft: #efefea;
+    --color-border-control: #dadad4;
+    --color-border-input: #cfcfc8;
+
+    /* Accent */
+    --color-accent-hover: #174aa6;
+    --color-accent-soft: #eef3fd;
+    --color-accent-softer: #f3f7fe;
+    --color-accent-best: #f7faff;
+    --color-accent-disabled: #9aa8c2;
+
+    /* States */
+    --color-success-bg: #e3f1e8;
+    --color-success-border: #a9d5b9;
+    --color-success-fg: #17603a;
+    --color-success-strong: #124a2d;
+    --color-warning-bg: #fdf0e6;
+    --color-warning-border: #f1c9a5;
+    --color-warning-fg: #6e3507;
+    --color-warning-badge: #93450a;
+    --color-danger-bg: #fdecea;
+    --color-danger-border: #f3b8b1;
+    --color-danger-fg: #8a1c12;
+    --color-danger: #b42318;
+    --color-holiday: #c2410c;
+
+    /* Occupancy map (availability search) */
+    --color-occ-fixed: #1e3a8a;
+    --color-occ-movable: #93c5fd;
+    --color-occ-free: #e9e9e4;
+    --color-occ-requested: #fed7aa;
+    --color-occ-requested-border: #c2410c;
+    --color-occ-requested-text: #9a3412;
+
+    --radius-ui: 4px;
+
+    /* Flux builds its neutrals on the zinc scale: redefined with the warm
+       neutrals of the mockup so Flux components match the tokens above. */
+    --color-zinc-50: #fafaf8;
+    --color-zinc-100: #f4f4f1;
+    --color-zinc-200: #e7e7e2;
+    --color-zinc-300: #dadad4;
+    --color-zinc-400: #a8a8a1;
+    --color-zinc-500: #6b6e73;
+    --color-zinc-600: #5e6166;
+    --color-zinc-700: #44474d;
+    --color-zinc-800: #2b2e33;
+    --color-zinc-900: #15171a;
+    --color-zinc-950: #0b0c0e;
+
+    /* Flux accent: primary buttons, focus rings, checkboxes, links. */
+    --color-accent: #1f5fd1;
+    --color-accent-content: #1f5fd1;
+    --color-accent-foreground: #ffffff;
+}
+
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-border, currentColor);
+    }
+
+    body {
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+[data-flux-field]:not(ui-radio, ui-checkbox) {
+    @apply grid gap-[5px];
+}
+
+[data-flux-label] {
+    @apply !mb-0 !leading-tight;
+}
+
+input:focus[data-flux-control],
+textarea:focus[data-flux-control],
+select:focus[data-flux-control] {
+    @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
+}
