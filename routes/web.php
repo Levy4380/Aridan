@@ -2,6 +2,7 @@
 
 use App\Livewire\Apartments\Index as ApartmentsIndex;
 use App\Livewire\Availability\Search as AvailabilitySearch;
+use App\Livewire\Billing\Pending as BillingPending;
 use App\Livewire\Calendar\Index as CalendarIndex;
 use App\Livewire\Employees\Index as EmployeesIndex;
 use App\Livewire\Guests\Index as GuestsIndex;
@@ -21,6 +22,7 @@ Route::middleware(['auth'])->group(function () {
     ]))->withTrashed()->name('reservations.show');
 
     Route::livewire('clientes', GuestsIndex::class)->name('guests.index');
+    Route::livewire('pendientes-a-facturar', BillingPending::class)->name('billing.pending');
     Route::livewire('departamentos', ApartmentsIndex::class)->name('apartments.index');
     Route::livewire('empleados', EmployeesIndex::class)->name('employees.index');
 });

@@ -6,7 +6,7 @@
 @endphp
 
 <div>
-    <flux:modal variant="flyout" wire:model.self.live="show" class="w-full md:w-[560px]" data-test="reservation-panel">
+    <flux:modal variant="flyout" wire:model.self.live="show" class="w-full max-md:max-w-none max-md:p-5 md:w-[560px]" data-test="reservation-panel">
         @if ($reservation)
             @php
                 $stay = $reservation->stay();
@@ -202,6 +202,21 @@
                             </p>
                         @endif
 
+                        {{-- Facturada: always editable, also on a cancelled reservation. --}}
+                        <div class="flex flex-wrap items-center gap-3 rounded-ui border border-divider px-3 py-2" data-test="invoicing-row">
+                            <x-invoiced-badge :invoiced="$reservation->isInvoiced()" />
+                            <span class="min-w-0 flex-1 text-[13px] text-subtle">
+                                @if ($reservation->isInvoiced())
+                                    {{ __('reservations.invoicing.by', ['name' => $reservation->invoicedBy?->name ?? '—', 'date' => Format::date($reservation->invoiced_at, true)]) }}
+                                @else
+                                    {{ __('reservations.invoicing.pending_help') }}
+                                @endif
+                            </span>
+                            <flux:button size="sm" wire:click="toggleInvoiced" class="max-sm:w-full" data-test="toggle-invoiced">
+                                {{ $reservation->isInvoiced() ? __('reservations.invoicing.unmark') : __('reservations.invoicing.mark') }}
+                            </flux:button>
+                        </div>
+
                         <section class="flex flex-col gap-2">
                             <x-section-title>{{ __('reservations.create.guest') }}</x-section-title>
                             <x-guest-card :guest="$reservation->guest">
@@ -216,9 +231,9 @@
 
                         @unless ($cancelled)
                             <div class="flex flex-wrap gap-2 border-t border-divider pt-4">
-                                <flux:button variant="primary" icon="pencil-square" wire:click="startEdit" data-test="edit-button">{{ __('reservations.panel.edit') }}</flux:button>
-                                <flux:button icon="arrows-right-left" wire:click="startMove" data-test="move-button">{{ __('reservations.panel.move') }}</flux:button>
-                                <flux:button variant="ghost" class="ms-auto border border-danger-border text-danger!" wire:click="startCancel" data-test="cancel-button">{{ __('reservations.panel.cancel') }}</flux:button>
+                                <flux:button variant="primary" icon="pencil-square" wire:click="startEdit" class="max-sm:w-full" data-test="edit-button">{{ __('reservations.panel.edit') }}</flux:button>
+                                <flux:button icon="arrows-right-left" wire:click="startMove" class="max-sm:w-full" data-test="move-button">{{ __('reservations.panel.move') }}</flux:button>
+                                <flux:button variant="ghost" class="border border-danger-border text-danger! max-sm:w-full sm:ms-auto" wire:click="startCancel" data-test="cancel-button">{{ __('reservations.panel.cancel') }}</flux:button>
                             </div>
                         @endunless
                 @endswitch

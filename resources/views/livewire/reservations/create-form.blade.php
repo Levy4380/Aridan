@@ -5,7 +5,7 @@
 @endphp
 
 <div>
-    <flux:modal variant="flyout" wire:model.self="show" class="w-full md:w-[560px]" data-test="reservation-drawer">
+    <flux:modal variant="flyout" wire:model.self="show" class="w-full max-md:max-w-none max-md:p-5 md:w-[560px]" data-test="reservation-drawer">
         @if ($stay)
             <form wire:submit="save" class="flex flex-col gap-5">
                 <h2 class="text-[20px] font-bold text-ink">{{ __('reservations.create.title') }}</h2>
@@ -55,7 +55,7 @@
 
                 @include('livewire.partials.reservation-details')
 
-                <div class="-mx-6 -mb-6 flex flex-wrap items-center justify-end gap-2 border-t border-divider bg-surface-alt px-6 py-4">
+                <div class="-mx-5 -mb-5 px-5 md:-mx-6 md:-mb-6 md:px-6 flex flex-wrap items-center justify-end gap-2 border-t border-divider bg-surface-alt py-4">
                     <flux:modal.close>
                         <flux:button variant="filled">{{ __('common.cancel') }}</flux:button>
                     </flux:modal.close>

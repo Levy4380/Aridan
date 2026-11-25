@@ -4,6 +4,7 @@ namespace App\Livewire\Reservations;
 
 use App\Actions\Reservations\CancelReservation;
 use App\Actions\Reservations\MoveReservation;
+use App\Actions\Reservations\SetInvoiced;
 use App\Actions\Reservations\UpdateReservation;
 use App\Domain\Warning;
 use App\Livewire\Concerns\EditsReservationDetails;
@@ -90,7 +91,7 @@ class Panel extends Component
     {
         return $this->reservationId
             ? Reservation::withTrashed()
-                ->with(['apartment', 'guest' => fn ($query) => $query->withCount('reservations'), 'employee', 'extras', 'cancelledBy'])
+                ->with(['apartment', 'guest' => fn ($query) => $query->withCount('reservations'), 'employee', 'extras', 'cancelledBy', 'invoicedBy'])
                 ->find($this->reservationId)
             : null;
     }
@@ -148,7 +149,7 @@ class Panel extends Component
             return;
         }
 
-        $updateReservation($reservation, [
+        $updated = $updateReservation($reservation, [
             'apartment_id' => $reservation->apartment_id,
             'check_in_date' => $reservation->check_in_date->toDateString(),
             'check_out_date' => $reservation->check_out_date->toDateString(),
@@ -159,7 +160,26 @@ class Panel extends Component
             ...$this->guestPayload(),
         ]);
 
+        $this->saveInvoiced($updated);
+
         $this->afterChange(__('reservations.panel.updated'));
+    }
+
+    /**
+     * "Facturada" can always be changed from the detail, even on a
+     * cancelled reservation.
+     */
+    public function toggleInvoiced(SetInvoiced $setInvoiced): void
+    {
+        $reservation = $this->reservation;
+
+        if (! $reservation) {
+            return;
+        }
+
+        $setInvoiced($reservation, ! $reservation->isInvoiced(), auth()->user());
+
+        $this->afterChange($reservation->fresh()->isInvoiced() ? __('reservations.invoicing.marked') : __('reservations.invoicing.unmarked'));
     }
 
     /*

@@ -4,9 +4,9 @@
 ])
 
 {{-- Page header pattern (arquitectura-frontend.md, 2): h1, help line and the main action on the right. --}}
-<div {{ $attributes->merge(['class' => 'flex flex-wrap items-start justify-between gap-4']) }}>
-    <div>
-        <h1 class="text-[26px] font-bold leading-tight tracking-[-0.01em] text-ink">{{ $title }}</h1>
+<div {{ $attributes->merge(['class' => 'flex flex-wrap items-start justify-between gap-x-4 gap-y-3']) }}>
+    <div class="min-w-0">
+        <h1 class="text-[22px] sm:text-[26px] font-bold leading-tight tracking-[-0.01em] text-ink">{{ $title }}</h1>
         @if ($description)
             <p class="mt-1 text-sm text-subtle">{{ $description }}</p>
         @endif

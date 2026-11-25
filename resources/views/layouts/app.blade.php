@@ -4,9 +4,13 @@
         @include('partials.head')
     </head>
     <body class="min-h-screen bg-canvas text-ink antialiased">
-        <x-app.header />
+        <x-app.header class="print:hidden" />
 
-        <main {{ $attributes->merge(['class' => 'mx-auto flex w-full max-w-[1440px] flex-col gap-4 p-6']) }}>
+        {{-- The calendar uses the whole width; the other screens keep a readable max. --}}
+        <main {{ $attributes->class([
+            'mx-auto flex w-full min-w-0 flex-col gap-4 p-4 sm:p-6 print:p-0',
+            'max-w-[1440px]' => ! request()->routeIs('calendar'),
+        ]) }}>
             {{ $slot }}
         </main>
 
@@ -20,6 +24,7 @@
         <livewire:guests.drawer />
         <livewire:apartments.drawer />
         <livewire:employees.drawer />
+        <livewire:billing.invoice-drawer />
 
         @persist('toast')
             <flux:toast.group>

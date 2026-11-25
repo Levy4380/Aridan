@@ -3,7 +3,7 @@
 @endphp
 
 <div>
-    <flux:modal variant="flyout" wire:model.self.live="show" class="w-full md:w-[560px]" data-test="guest-drawer">
+    <flux:modal variant="flyout" wire:model.self.live="show" class="w-full max-md:max-w-none max-md:p-5 md:w-[560px]" data-test="guest-drawer">
         <div class="flex flex-col gap-5">
             <div class="pe-8">
                 <h2 class="text-[20px] font-bold text-ink">{{ $this->guest?->full_name ?? __('guests.new') }}</h2>

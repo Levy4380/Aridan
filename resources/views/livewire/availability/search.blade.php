@@ -1,7 +1,3 @@
-@php
-    $columns = '36px 96px 150px 210px max-content 1fr';
-@endphp
-
 <div class="mx-auto flex w-full max-w-[1280px] flex-col gap-4">
     @if ($editing)
         <x-page-header :title="__('availability.edit.title')" :description="__('availability.edit.description')" />
@@ -34,18 +30,22 @@
         </flux:callout>
     @endif
 
-    {{-- Search form: no "Buscar" button, results follow the fields. --}}
-    <div class="flex flex-wrap items-end gap-x-5 gap-y-3 rounded-ui border border-border bg-surface p-4">
-        <flux:input type="date" wire:model.live="checkIn" :label="__('availability.check_in')" class="w-40" />
-        <flux:input type="date" wire:model.live="checkOut" :label="__('availability.check_out')" class="w-40" />
-        <flux:input type="number" min="1" max="30" wire:model.live.debounce.400ms="people" :label="__('availability.people')" class="w-[90px]" />
+    {{--
+        Search form: no "Buscar" button, results follow the fields. On a
+        phone it is a 2-column grid (Entrada | Salida, Personas | options);
+        from sm up, one row.
+    --}}
+    <div class="grid grid-cols-2 items-end gap-x-3 gap-y-3 rounded-ui border border-border bg-surface p-4 sm:flex sm:flex-wrap sm:gap-x-5">
+        <flux:input type="date" wire:model.live="checkIn" :label="__('availability.check_in')" class="sm:w-40" />
+        <flux:input type="date" wire:model.live="checkOut" :label="__('availability.check_out')" class="sm:w-40" />
+        <flux:input type="number" min="1" max="30" wire:model.live.debounce.400ms="people" :label="__('availability.people')" class="sm:w-[90px]" />
         <div class="flex flex-col gap-2 pb-1">
             <flux:checkbox wire:model.live="earlyCheckIn" :label="__('availability.early_check_in')" />
             <flux:checkbox wire:model.live="lateCheckOut" :label="__('availability.late_check_out')" />
         </div>
 
         @if ($stay)
-            <p class="ms-auto pb-2 text-sm text-ink-2" role="status">
+            <p class="col-span-full pb-2 text-sm text-ink-2 sm:ms-auto" role="status">
                 <span class="font-bold text-ink">{{ trans_choice('availability.nights', $stay->nights(), ['count' => $stay->nights()]) }}</span>
                 · {{ __('availability.summary_range', [
                     'from' => $stay->checkIn->locale('es')->isoFormat('ddd').' '.\App\Support\Format::date($stay->checkIn),
@@ -118,9 +118,15 @@
                         {{ __('availability.none_available') }}
                     </div>
                 @else
-                    <div class="overflow-x-auto rounded-ui border border-border bg-surface">
-                        <div class="min-w-[1180px]">
-                            <div class="grid items-end gap-x-3 border-b border-divider bg-surface-alt px-3 py-2 text-xs font-semibold text-muted" style="grid-template-columns: {{ $columns }}">
+                    {{--
+                        Wide screens: a table (rank, apartment, capacity, gap,
+                        map, action) that scrolls sideways if the map is long.
+                        Phones: one card per apartment, with the map in its own
+                        sideways-scrolling strip and the day numbers above it.
+                    --}}
+                    <div class="rounded-ui border border-border bg-surface lg:overflow-x-auto">
+                        <div class="lg:min-w-[1180px]">
+                            <div class="grid items-end gap-x-3 border-b border-divider bg-surface-alt px-3 py-2 text-xs font-semibold text-muted max-lg:hidden lg:grid-cols-[36px_96px_150px_minmax(140px,210px)_max-content_minmax(84px,1fr)]">
                                 <span>#</span>
                                 <span>{{ __('availability.columns.apartment') }}</span>
                                 <span>{{ __('availability.columns.capacity') }}</span>
@@ -142,25 +148,35 @@
                                 <div
                                     wire:key="available-{{ $apartment->id }}"
                                     @class([
-                                        'grid items-center gap-x-3 border-b border-divider-soft px-3 py-2 last:border-0',
+                                        'grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-b border-divider-soft px-3 py-3 last:border-0 lg:grid-cols-[36px_96px_150px_minmax(140px,210px)_max-content_minmax(84px,1fr)] lg:py-2',
                                         'bg-accent-best' => $option->isBest(),
                                     ])
-                                    style="grid-template-columns: {{ $columns }}"
                                 >
                                     <span class="text-sm text-faint">{{ $option->rank }}</span>
                                     <span class="flex items-baseline gap-1.5">
                                         <span class="text-[19px] font-bold text-ink">{{ $apartment->number }}</span>
                                         <span class="text-xs text-subtle">{{ \App\Support\Format::people($apartment->capacity) }}</span>
                                     </span>
-                                    <span class="flex flex-wrap gap-1">
+                                    <span class="flex flex-wrap gap-1 max-lg:order-4 max-lg:col-span-full">
                                         <x-fit-badge :fit="$option->fit" />
                                         @if ($option->isBest())
                                             <span class="inline-flex items-center rounded-[3px] bg-accent px-2 py-0.5 text-xs font-bold text-white">{{ __('availability.best') }}</span>
                                         @endif
                                     </span>
-                                    <x-availability.gap :availability="$option->availability" class="text-[13px] text-ink-2" />
-                                    <x-occupancy-map :days="$option->availability->map" :label="__('availability.map.label', ['number' => $apartment->number])" />
-                                    <span class="flex items-center justify-end gap-2">
+                                    <x-availability.gap :availability="$option->availability" class="text-[13px] text-ink-2 max-lg:order-5 max-lg:col-span-full" />
+                                    <div class="max-lg:order-6 max-lg:col-span-full max-lg:-mx-3 max-lg:overflow-x-auto max-lg:px-3 max-lg:pb-1">
+                                        <div class="flex w-max gap-0.5 pb-1 lg:hidden" aria-hidden="true">
+                                            @foreach ($mapDays as $day)
+                                                <span @class([
+                                                    'w-[26px] shrink-0 text-center text-[9px] leading-tight',
+                                                    'font-bold text-occ-requested-text' => $day['requested'],
+                                                    'font-normal text-faint' => ! $day['requested'],
+                                                ])>{{ $day['date']->format('d') }}<br>{{ \Illuminate\Support\Str::substr($day['date']->locale('es')->minDayName, 0, 1) }}</span>
+                                            @endforeach
+                                        </div>
+                                        <x-occupancy-map :days="$option->availability->map" :label="__('availability.map.label', ['number' => $apartment->number])" class="w-max" />
+                                    </div>
+                                    <span class="flex items-center justify-end gap-2 max-lg:order-3">
                                         @if ($editing)
                                             @if ($apartment->id === $editing->apartment_id)
                                                 <span class="text-xs font-bold text-accent">{{ __('availability.edit.current') }}</span>

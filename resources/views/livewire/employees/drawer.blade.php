@@ -1,5 +1,5 @@
 <div>
-    <flux:modal variant="flyout" wire:model.self.live="show" data-test="employee-drawer" class="w-full md:w-[560px]">
+    <flux:modal variant="flyout" wire:model.self.live="show" data-test="employee-drawer" class="w-full max-md:max-w-none max-md:p-5 md:w-[560px]">
         <form wire:submit="save" class="flex flex-col gap-5">
             <div class="flex items-center gap-3">
                 <h2 class="text-[20px] font-bold text-ink">
@@ -67,7 +67,7 @@
                 </div>
             @endif
 
-            <div class="-mx-6 -mb-6 flex justify-end gap-2 border-t border-divider bg-surface-alt px-6 py-4">
+            <div class="-mx-5 -mb-5 px-5 md:-mx-6 md:-mb-6 md:px-6 flex justify-end gap-2 border-t border-divider bg-surface-alt py-4">
                 <flux:modal.close>
                     <flux:button variant="filled">{{ __('common.cancel') }}</flux:button>
                 </flux:modal.close>

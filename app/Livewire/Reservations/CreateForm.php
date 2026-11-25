@@ -140,6 +140,8 @@ class CreateForm extends Component
             throw $e;
         }
 
+        $this->saveInvoiced($reservation);
+
         session()->flash('status', __('reservations.created', [
             'guest' => $reservation->guest->full_name,
             'number' => $reservation->apartment->number,

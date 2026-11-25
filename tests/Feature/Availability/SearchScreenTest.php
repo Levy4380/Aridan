@@ -79,5 +79,5 @@ test('moving the check-in past the checkout keeps the stay one night long', func
 test('the calendar links to the search', function () {
     $this->get(route('calendar'))
         ->assertSee(route('availability'))
-        ->assertSee(__('calendar.new_reservation'));
+        ->assertSee(__('calendar.search_and_book'));
 });

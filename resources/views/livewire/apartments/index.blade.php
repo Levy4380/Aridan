@@ -11,7 +11,7 @@
     </x-page-header>
 
     <div class="overflow-x-auto rounded-ui border border-border bg-surface">
-        <table class="w-full min-w-[640px] text-sm">
+        <table class="stack-table w-full min-w-[640px] text-sm">
             <thead class="bg-surface-alt text-left text-xs font-semibold text-muted">
                 <tr class="border-b border-divider">
                     <th scope="col" class="px-4 py-2.5">{{ __('apartments.columns.number') }}</th>
@@ -31,9 +31,9 @@
                                 aria-label="{{ __('apartments.edit_label', ['number' => $apartment->number]) }}"
                             >{{ $apartment->number }}</button>
                         </td>
-                        <td class="px-4 py-2 text-ink-2">{{ trans_choice('apartments.people', $apartment->capacity) }}</td>
-                        <td class="px-4 py-2 text-subtle">{{ $apartment->description ?? '—' }}</td>
-                        <td class="px-4 py-2"><x-status-badge :active="$apartment->is_active" /></td>
+                        <td data-label="{{ __('apartments.columns.capacity') }}" class="px-4 py-2 text-ink-2">{{ trans_choice('apartments.people', $apartment->capacity) }}</td>
+                        <td data-label="{{ __('apartments.columns.description') }}" @class(['px-4 py-2 text-subtle', 'max-sm:hidden!' => ! $apartment->description])>{{ $apartment->description ?? '—' }}</td>
+                        <td data-label="{{ __('apartments.columns.status') }}" class="px-4 py-2"><x-status-badge :active="$apartment->is_active" /></td>
                     </tr>
                 @empty
                     <tr>

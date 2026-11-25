@@ -53,6 +53,7 @@ class Index extends Component
 
         $this->mount();
         $this->from = $this->normalizedStart($from)->toDateString();
+        $this->dispatch('calendar-today');
     }
 
     public function previous(): void
@@ -70,6 +71,23 @@ class Index extends Component
     public function today(): void
     {
         $this->from = $this->normalizedStart(CarbonImmutable::today())->toDateString();
+        $this->dispatch('calendar-today');
+    }
+
+    /**
+     * "Imprimir": the whole month of the current window, printed or saved as
+     * PDF from the browser's print dialog. In the two-week view it switches
+     * to the month first.
+     */
+    public function printMonth(): void
+    {
+        if ($this->range !== self::RANGE_MONTH) {
+            $this->range = self::RANGE_MONTH;
+            $this->from = $this->parsedFrom()->startOfMonth()->toDateString();
+        }
+
+        // Runs after the page is updated with the month.
+        $this->js('setTimeout(() => window.print(), 150)');
     }
 
     #[On('reservation-changed')]

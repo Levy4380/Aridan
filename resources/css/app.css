@@ -105,6 +105,10 @@
         font-variant-numeric: tabular-nums;
     }
 
+    [x-cloak] {
+        display: none !important;
+    }
+
     /* Everything clickable shows the hand cursor (Tailwind 4 resets buttons
        to the default arrow). Covers native controls and Flux's elements. */
     a[href],
@@ -138,6 +142,163 @@
     }
 }
 
+/* Calendar grid: one column for the apartment and two per day (morning /
+   afternoon). Days stretch to use the whole width, never narrower than
+   --day-w; below that the grid scrolls inside its card. */
+.calendar {
+    --apartment-w: 132px;
+    --calendar-cols: var(--apartment-w) repeat(var(--slots), minmax(calc(var(--day-w) / 2), 1fr));
+}
+
+/* Phones: a narrow apartment column leaves room for more days. */
+@media (width < 40rem) {
+    .calendar {
+        --apartment-w: 64px;
+    }
+}
+
+.calendar-sheet {
+    min-width: var(--calendar-min-w);
+}
+
+/*
+ * Print / PDF of the calendar ("Imprimir" uses the browser's print dialog,
+ * which also saves as PDF): only the month grid, on one landscape page.
+ * No app header, no title, no buttons, no legend.
+ */
+@media print {
+    @page {
+        size: A4 landscape;
+        margin: 6mm;
+    }
+
+    html,
+    body {
+        background: #fff !important;
+    }
+
+    * {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+
+    .calendar {
+        --apartment-w: 64px;
+        --calendar-cols: 64px repeat(var(--slots), minmax(0, 1fr));
+    }
+
+    .calendar-sheet {
+        min-width: 0;
+    }
+
+    .calendar-scroll {
+        border: 1px solid var(--color-border);
+    }
+
+    .calendar .sticky {
+        position: static;
+    }
+
+    .calendar-apartment-row {
+        height: 34px !important;
+        grid-template-rows: 34px !important;
+        break-inside: avoid;
+    }
+
+    /* The morning/afternoon split line is a 1px gradient that rasterizes as
+       a dark stripe in PDFs: drop it on paper (the M/T header stays). */
+    .calendar-apartment-row > div:not(.calendar-inactive) {
+        background-image: none !important;
+    }
+
+    /* Apartment column: number and capacity on one line. */
+    .calendar-apartment-row > div:first-child {
+        padding-inline: 4px;
+        gap: 3px;
+        white-space: nowrap;
+    }
+
+    .calendar-apartment-row > div:first-child span {
+        font-size: 9px;
+    }
+
+    .calendar-apartment-row > div:first-child span:first-child {
+        font-size: 11px;
+    }
+
+    .calendar-apartment-row > button {
+        margin-block: 2px;
+        padding-inline: 2px;
+        font-size: 7px;
+        line-height: 9px;
+        animation: none;
+    }
+
+    .calendar-apartment-row > button svg {
+        display: none;
+    }
+
+    .calendar-apartment-row > button * {
+        font-size: 7px !important;
+        line-height: 9px !important;
+    }
+}
+
+/*
+ * Lists (clientes, a facturar, departamentos, empleados): a table on wide
+ * screens; on phones each row becomes a card. The first cell is the title
+ * and every other cell shows its column name (data-label) on the left.
+ */
+@media (width < 40rem) {
+    .stack-table {
+        min-width: 0 !important;
+    }
+
+    .stack-table thead {
+        display: none;
+    }
+
+    .stack-table tbody,
+    .stack-table tr {
+        display: block;
+    }
+
+    .stack-table tr {
+        padding: 10px 16px;
+    }
+
+    .stack-table td {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 2px 0 !important;
+        text-align: right !important;
+        overflow-wrap: anywhere;
+    }
+
+    .stack-table td:first-child {
+        justify-content: flex-start;
+        padding-bottom: 4px !important;
+        text-align: left !important;
+    }
+
+    .stack-table td[data-label]::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--color-faint);
+        text-align: left;
+    }
+
+    .stack-table td[colspan] {
+        display: block;
+        padding: 24px 0 !important;
+        text-align: center !important;
+    }
+}
+
 /* Calendar: an inactive apartment's row is striped. */
 .calendar-inactive {
     background-color: var(--color-surface-alt);
@@ -152,6 +313,22 @@
 
 .reservation-highlight {
     animation: reservation-highlight 1s ease-in-out 4;
+}
+
+/* Native date inputs: mobile browsers (iOS above all) center the value and
+   give the control a minimum width of its own (~180px), which pushed it out
+   of narrow fields. Keep them left-aligned and as wide as their field. */
+[data-flux-field]:has(input[type='date']) {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+input[type='date'][data-flux-control] {
+    min-width: 0;
+    text-align: start;
+}
+
+input[type='date'][data-flux-control]::-webkit-date-and-time-value {
+    text-align: start;
 }
 
 [data-flux-field]:not(ui-radio, ui-checkbox) {

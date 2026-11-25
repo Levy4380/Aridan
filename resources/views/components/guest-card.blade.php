@@ -12,7 +12,7 @@
     <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink text-sm font-bold text-white" aria-hidden="true">{{ $initials }}</span>
     <div class="min-w-0 flex-1">
         <p class="truncate font-semibold text-ink">{{ $guest->full_name }}</p>
-        <p class="truncate text-[13px] text-subtle">
+        <p class="text-[13px] text-subtle sm:truncate">
             {{ __('guests.card.phone', ['phone' => \App\Support\Format::phone($guest->phone)]) }}
             · {{ $guest->document_number ? __('guests.card.document', ['document' => \App\Support\Format::document($guest->document_number)]) : __('guests.card.no_document') }}
             @if ($count !== null)

@@ -92,6 +92,8 @@ PostgreSQL (serverless en Laravel Cloud)
 | payment_status | string | Enum PHP `PaymentStatus`: `pending`, `deposit`, `paid`. |
 | amount | decimal(12,2), nullable | Lo cobrado. |
 | payment_method | string, nullable | Enum PHP `PaymentMethod`: `transfer`, `cash`. Se carga cuando hay pago. |
+| invoiced_at | timestamp, nullable | Facturada: `null` = no facturada. Se cambia siempre con `SetInvoiced`, también en canceladas. |
+| invoiced_by_id | FK → users, nullable | Quién la marcó como facturada. |
 | extra_mattresses | unsigned tinyint | Colchones extra. Por defecto `0`. |
 | is_movable | boolean | Por defecto `true`. |
 | notes | text, nullable | La "nota de la reserva". |
@@ -161,6 +163,7 @@ Cada action es una clase invocable en `app/Actions`, con una única responsabili
 | `CancelReservation` | Guarda `cancelled_by_id` y hace el soft delete. El departamento queda libre en esas fechas. | — |
 | `DeactivateApartment` | Pone `is_active = false`. | El departamento tiene reservas futuras (`end_slot > currentSlot`). |
 | `ActivateApartment` | Pone `is_active = true`. | — |
+| `SetInvoiced` | Marca una reserva como facturada o no, con quién y cuándo. | — (se puede cambiar siempre, también en canceladas) |
 | `SaveGuest` (`app/Actions/Guests`) | Alta y edición de un cliente desde la pantalla Clientes. | Falta nombre, apellido o teléfono; el teléfono o el DNI/CUIT (normalizados) ya son de otro cliente. |
 | `CreateApartment` / `UpdateApartment` | Alta y edición de número, capacidad, descripción y orden. La activación va por las actions de arriba. | El número se repite; la capacidad es menor a 1. |
 
@@ -274,6 +277,7 @@ Queda aislada en su propia clase para poder ajustar los pesos sin tocar nada má
 | `/reservas/{reservation}` | `reservations.show` | Abre el calendario en el mes de la reserva con su panel (detalle, edición, movimiento y cancelación). |
 | `/departamentos` | `apartments.index` | ABM de departamentos |
 | `/clientes` | `guests.index` | Listado y edición de clientes |
+| `/pendientes-a-facturar` | `billing.pending` | Reservas cobradas y no facturadas (`PendingInvoicesQuery`); por defecto solo transferencias, `?efectivo=true` suma efectivo |
 | `/empleados` | `employees.index` | Alta, edición, color y activación de empleados |
 
 ## 10. Estructura de carpetas

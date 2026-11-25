@@ -53,6 +53,29 @@ test('the two-week window starts on the current week', function () {
         ->assertSet('from', '2026-12-07');
 });
 
+test('"Imprimir" prints the whole month, switching from the two-week view', function () {
+    Livewire::test(Index::class)
+        ->set('range', Index::RANGE_TWO_WEEKS)
+        ->assertSet('from', '2026-11-23')
+        ->call('printMonth')
+        ->assertSet('range', Index::RANGE_MONTH)
+        ->assertSet('from', '2026-11-01');
+});
+
+test('one button searches and books, next to "Imprimir"; only the grid is printed', function () {
+    $this->get(route('calendar'))
+        ->assertSeeInOrder([__('calendar.print'), __('calendar.search_and_book')])
+        ->assertSeeHtml('data-test="print-button"')
+        ->assertSeeHtml('data-test="search-and-book"')
+        // App header, toolbar and legend are hidden when printing.
+        ->assertSeeHtml('print:hidden');
+});
+
+test('the calendar uses the whole width; other screens keep a max width', function () {
+    $this->get(route('calendar'))->assertDontSeeHtml('max-w-[1440px]');
+    $this->get(route('guests.index'))->assertSeeHtml('max-w-[1440px]');
+});
+
 test('the window comes from the URL and bad values fall back to today', function () {
     Livewire::withQueryParams(['desde' => '2027-02-14', 'rango' => 'mes'])
         ->test(Index::class)

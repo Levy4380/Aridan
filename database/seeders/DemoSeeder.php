@@ -70,6 +70,11 @@ class DemoSeeder extends Seeder
                     'notes' => fake()->optional(0.2)->randomElement(['Puede ser sin balcón', 'Llegan tarde', 'Reserva familiar', 'Es cliente']),
                 ]);
 
+                // Most past payments are already invoiced; recent ones less so.
+                if ($status->hasPayment() && fake()->boolean($checkOut->isPast() ? 70 : 30)) {
+                    $reservation->forceFill(['invoiced_at' => now(), 'invoiced_by_id' => $employees->random()->id])->saveQuietly();
+                }
+
                 if ($extras->isNotEmpty() && fake()->boolean(30)) {
                     $reservation->extras()->attach($extras->random(fake()->numberBetween(1, $extras->count()))->pluck('id'));
                 }

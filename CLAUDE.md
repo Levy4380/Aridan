@@ -111,6 +111,7 @@ Cada reserva tiene:
 - **Estado de pago:** *Reservado* (sin pago), *Señado* (parcial) o *Pagado* (total).
 - **Monto:** un solo campo con lo cobrado, cuando está señado o pagado. No hay regla fija entre seña y total.
 - **Tipo de pago:** transferencia o efectivo, junto con el monto.
+- **Facturada** (sí / no): si se emitió la factura de lo cobrado. Se carga junto al tipo de pago y **se puede cambiar siempre**: cualquiera sea el estado de pago, y también en una reserva cancelada. Queda registrado quién la marcó y cuándo.
 - **Extras:** checkboxes. Primera iteración: **cochera** y **desayuno**.
 - **Colchones extra:** contador desde 0, para cuando hay más personas que capacidad.
 - **Movible** (booleano explícito que carga el empleado): si la reserva se puede cambiar de departamento. Deja de ser movible cuando el huésped pidió ese depto puntual o se le ofreció ese depto en particular (ej. se le mostraron fotos). No se guarda el motivo, solo la consecuencia.
@@ -146,6 +147,11 @@ Con fechas, personas, entrada temprana y salida tardía, el buscador arma tres g
 
 "Reservar" abre el drawer de alta, que sugiere 3 deptos de la lista con el elegido marcado.
 
+### Pendientes a facturar
+- Pantalla con las reservas **cobradas (señadas o pagadas) y no facturadas**, cada una con un badge de su estado de pago. **Las canceladas también aparecen**, porque el cobro existió.
+- Por defecto muestra solo los pagos por **transferencia**; se pueden sumar los de **efectivo**. Un pago sin tipo de pago cargado aparece siempre, para que no se pierda.
+- Al tocar una fila se abre un drawer con el monto total recibido, el CUIT/DNI y el nombre del cliente, y el botón **Facturada**, que la saca de la lista.
+
 ### Feriados
 - Solo referencia visual en el calendario: no afectan ninguna regla.
 - Se traen de la API pública de **ArgentinaDatos** (`/v1/feriados/{año}`, verificada el 25/11/2026) con `php artisan holidays:sync`, detrás de una interfaz `HolidayProvider`, y se guardan en una tabla local. El calendario nunca consulta la API.
@@ -165,7 +171,7 @@ Livewire (pantallas)  →  Actions (escriben) / Queries (leen)  →  Eloquent + 
 - **Actions:** `CreateReservation`, `UpdateReservation`, `MoveReservation`, `CancelReservation`, `ActivateApartment` / `DeactivateApartment` y las de empleados. Transaccionales; revalidan los errores, nunca confían en la UI. → backend §5 y §8.
 - **Errores vs. advertencias:** los errores bloquean (`ValidationException`); las advertencias (`capacity_exceeded`, `not_movable`, `missing_amount`, `similar_guest_name`, `color_in_use`) las calcula `ReservationWarnings` y se confirman. → backend §5, frontend §6.
 - **Queries:** `CalendarQuery`, `AvailabilityQuery`, `ApartmentSuggestions`. → backend §6.
-- **Pantallas y rutas:** `/calendario` (inicio), `/buscador` (con el drawer de alta), panel lateral de reserva (detalle / editar / mover / cancelar), `/clientes`, `/departamentos`, `/empleados`. El estado importante va en la URL (`#[Url]`). → backend §9, frontend §1 y §5.
+- **Pantallas y rutas:** `/calendario` (inicio), `/buscador` (con el drawer de alta), panel lateral de reserva (detalle / editar / mover / cancelar), `/clientes`, `/pendientes-a-facturar`, `/departamentos`, `/empleados`. El estado importante va en la URL (`#[Url]`). → backend §9, frontend §1 y §5.
 - **Sistema de diseño:** sobrio, neutros cálidos, un solo acento azul; los colores fuertes son de los empleados. Densidad de planilla, números tabulares, fuente Space Grotesk, tokens en `resources/css/app.css`. → frontend §3.
 - **Componentes:** Flux primero; si algo es de Flux Pro y no hay licencia, componente Blade propio con los tokens. Piezas de dominio como `<x-reservation-block>` y `<x-occupancy-map>`. → frontend §4.
 

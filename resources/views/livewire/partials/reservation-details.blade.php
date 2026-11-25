@@ -24,6 +24,9 @@
     @else
         <p class="text-[13px] text-subtle">{{ __('reservations.create.no_payment_help') }}</p>
     @endif
+
+    {{-- Next to the payment method, and always editable whatever the status. --}}
+    <flux:checkbox wire:model="is_invoiced" :label="__('reservations.fields.invoiced')" :description="__('reservations.fields.invoiced_help')" data-test="invoiced-checkbox" />
 </section>
 
 <section class="flex flex-col gap-3">

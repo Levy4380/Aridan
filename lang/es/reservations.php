@@ -5,6 +5,17 @@ return [
     'people_long' => '{1} 1 persona|[2,*] :count personas',
     'created' => 'Reserva de :guest guardada en el depto :number.',
 
+    'invoicing' => [
+        'invoiced' => 'Facturada',
+        'not_invoiced' => 'No facturada',
+        'by' => 'Facturada por :name el :date.',
+        'pending_help' => 'Todavía no se facturó.',
+        'mark' => 'Marcar facturada',
+        'unmark' => 'Marcar no facturada',
+        'marked' => 'Marcada como facturada.',
+        'unmarked' => 'Marcada como no facturada.',
+    ],
+
     'timing' => [
         'upcoming' => 'Próxima',
         'current' => 'En curso',
@@ -36,6 +47,8 @@ return [
         'people' => 'personas',
         'payment_method' => 'Tipo de pago',
         'amount' => 'Monto cobrado',
+        'invoiced' => 'Facturada',
+        'invoiced_help' => 'Se emitió la factura de lo cobrado. Se puede cambiar en cualquier momento.',
         'movable' => 'Movible',
         'movable_help' => 'Se puede cambiar de depto. Desmarcalo si el huésped pidió este depto o se lo ofreciste en particular (por ejemplo, con fotos).',
         'extra_mattresses' => 'Colchones extra',

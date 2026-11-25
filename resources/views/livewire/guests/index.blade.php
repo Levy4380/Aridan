@@ -22,7 +22,7 @@
     />
 
     <div class="overflow-x-auto rounded-ui border border-border bg-surface" wire:loading.class="opacity-60" wire:target="search">
-        <table class="w-full min-w-[720px] text-sm">
+        <table class="stack-table w-full min-w-[720px] text-sm">
             <thead class="bg-surface-alt text-left text-xs font-semibold text-muted">
                 <tr class="border-b border-divider">
                     <th scope="col" class="px-4 py-2.5">{{ __('guests.columns.name') }}</th>
@@ -43,12 +43,12 @@
                                 aria-label="{{ __('guests.open_label', ['name' => $guest->full_name]) }}"
                             >{{ $guest->full_name }}</button>
                         </td>
-                        <td class="px-4 py-2 text-ink-2">{{ Format::phone($guest->phone) }}</td>
-                        <td class="px-4 py-2 {{ $guest->document_number ? 'text-ink-2' : 'text-faint' }}">
+                        <td data-label="{{ __('guests.columns.phone') }}" class="px-4 py-2 text-ink-2">{{ Format::phone($guest->phone) }}</td>
+                        <td data-label="{{ __('guests.columns.document') }}" class="px-4 py-2 {{ $guest->document_number ? 'text-ink-2' : 'text-faint' }}">
                             {{ $guest->document_number ? Format::document($guest->document_number) : __('guests.no_document') }}
                         </td>
-                        <td class="px-4 py-2 text-ink-2">{{ $guest->reservations_count }}</td>
-                        <td class="px-4 py-2 text-ink-2">
+                        <td data-label="{{ __('guests.columns.reservations') }}" class="px-4 py-2 text-ink-2">{{ $guest->reservations_count }}</td>
+                        <td data-label="{{ __('guests.columns.last_stay') }}" class="px-4 py-2 text-ink-2">
                             {{ $guest->last_check_in ? Format::date(\Carbon\CarbonImmutable::parse($guest->last_check_in), true) : '—' }}
                         </td>
                     </tr>

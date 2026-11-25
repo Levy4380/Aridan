@@ -1,22 +1,29 @@
 @php
-    $columns = '132px repeat('.$grid->slotCount().', calc(var(--day-w) / 2))';
+    // Days stretch to use the whole width, never narrower than --day-w.
+    $dayWidth = $range === \App\Livewire\Calendar\Index::RANGE_TWO_WEEKS ? 96 : 52;
+    $slots = $grid->slotCount();
 @endphp
 
-<div class="flex flex-col gap-3" style="--day-w: {{ $range === \App\Livewire\Calendar\Index::RANGE_TWO_WEEKS ? '88px' : '40px' }}">
+<div
+    class="calendar flex flex-col gap-3"
+    style="--day-w: {{ $dayWidth }}px; --slots: {{ $slots }}; --calendar-min-w: calc(var(--apartment-w) + {{ $slots }} * var(--day-w) / 2);"
+>
     @if (session('status'))
-        <flux:callout variant="success" icon="check-circle" role="status" data-test="status-message">
+        <flux:callout variant="success" icon="check-circle" role="status" data-test="status-message" class="print:hidden">
             <flux:callout.text>{{ session('status') }}</flux:callout.text>
         </flux:callout>
     @endif
 
-    {{-- Toolbar --}}
-    <div class="flex flex-wrap items-center gap-3">
-        <div class="flex items-center gap-1">
-            <flux:button square variant="ghost" icon="chevron-left" wire:click="previous" :aria-label="__('calendar.previous')" />
-            <flux:button square variant="ghost" icon="chevron-right" wire:click="next" :aria-label="__('calendar.next')" />
+    {{-- Toolbar (not printed). On a phone: period + Hoy, then the range, then the actions. --}}
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-2.5 print:hidden">
+        <div class="flex items-center gap-x-2 max-sm:w-full sm:gap-x-3">
+            <div class="flex shrink-0 items-center sm:gap-1">
+                <flux:button square variant="ghost" icon="chevron-left" wire:click="previous" :aria-label="__('calendar.previous')" />
+                <flux:button square variant="ghost" icon="chevron-right" wire:click="next" :aria-label="__('calendar.next')" />
+            </div>
+            <h1 class="min-w-0 truncate text-[18px] font-bold leading-tight tracking-[-0.01em] text-ink max-sm:flex-1 sm:min-w-44 sm:text-[26px]">{{ $title }}</h1>
+            <flux:button size="sm" wire:click="today" class="shrink-0">{{ __('calendar.today') }}</flux:button>
         </div>
-        <h1 class="min-w-44 text-[26px] font-bold leading-tight tracking-[-0.01em] text-ink">{{ $title }}</h1>
-        <flux:button size="sm" wire:click="today">{{ __('calendar.today') }}</flux:button>
 
         <flux:radio.group wire:model.live="range" variant="segmented" size="sm" class="w-auto">
             <flux:radio value="{{ \App\Livewire\Calendar\Index::RANGE_MONTH }}" :label="__('calendar.range_month')" />
@@ -27,38 +34,52 @@
             {{ trans_choice('calendar.summary_apartments', $grid->activeApartments) }} · {{ trans_choice('calendar.summary_reservations', $grid->reservationCount) }}
         </p>
 
-        @if (Route::has('availability'))
-            <div class="ms-auto flex gap-2">
-                <flux:button :href="route('availability')" wire:navigate icon="magnifying-glass">{{ __('calendar.search') }}</flux:button>
-                <flux:button :href="route('availability')" wire:navigate variant="primary" icon="plus">{{ __('calendar.new_reservation') }}</flux:button>
-            </div>
-        @endif
+        <div class="flex gap-2 max-sm:w-full sm:ms-auto">
+            <flux:button icon="printer" wire:click="printMonth" class="shrink-0" :aria-label="__('calendar.print')" data-test="print-button"><span class="max-sm:hidden">{{ __('calendar.print') }}</span></flux:button>
+            @if (Route::has('availability'))
+                {{-- Searching and booking are the same flow: every reservation starts in the search. --}}
+                <flux:button :href="route('availability')" wire:navigate variant="primary" icon="magnifying-glass" class="max-sm:flex-1" data-test="search-and-book"><span class="max-[359px]:hidden">{{ __('calendar.search_and_book') }}</span><span class="min-[360px]:hidden">{{ __('calendar.search_and_book_short') }}</span></flux:button>
+            @endif
+        </div>
     </div>
 
-    {{-- Legend --}}
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs font-semibold text-muted">
-        <span>{{ __('calendar.legend_responsible') }}</span>
-        @foreach ($grid->employees as $employee)
-            <span class="flex items-center gap-1.5 font-medium text-ink-2">
-                <span class="size-3 rounded-[2px] border border-[rgba(20,22,26,0.2)]" style="background-color: {{ $employee->color }}"></span>
-                {{ $employee->name }}
-            </span>
-        @endforeach
-        <span class="h-4 w-px bg-divider" aria-hidden="true"></span>
-        <span class="flex items-center gap-1 font-medium"><flux:icon.lock-closed variant="micro" class="size-3.5" /> {{ __('calendar.legend_fixed') }}</span>
-        <span class="flex items-center gap-1 font-medium"><x-icon.sunrise class="size-3.5" /> {{ __('calendar.legend_early') }}</span>
-        <span class="flex items-center gap-1 font-medium"><flux:icon.moon variant="micro" class="size-3.5" /> {{ __('calendar.legend_late') }}</span>
-        <span class="flex items-center gap-1 font-medium"><x-icon.parking class="size-3.5" /> {{ __('calendar.legend_parking') }}</span>
-        <span class="flex items-center gap-1 font-medium"><x-icon.breakfast class="size-3.5" /> {{ __('calendar.legend_breakfast') }}</span>
-    </div>
+    {{-- Legend (not printed). On a phone it folds away so the grid starts higher. --}}
+    <x-calendar.legend :employees="$grid->employees" class="print:hidden max-sm:hidden" />
+    <details class="group rounded-ui border border-border bg-surface sm:hidden print:hidden">
+        <summary class="flex list-none items-center justify-between px-3 py-2 text-xs font-semibold text-muted [&::-webkit-details-marker]:hidden">
+            {{ __('calendar.legend') }}
+            <flux:icon.chevron-down variant="micro" class="size-4 transition-transform group-open:rotate-180" />
+        </summary>
+        <x-calendar.legend :employees="$grid->employees" class="border-t border-divider px-3 py-2.5" />
+    </details>
 
     {{-- Grid --}}
-    <div class="overflow-x-auto rounded-ui border border-border bg-surface" wire:loading.class="opacity-60">
-        <div class="w-max min-w-full">
+    {{--
+        The grid scrolls sideways inside its card (edge to edge on a phone).
+        On phones and tablets, on load and after "Hoy", it scrolls so
+        yesterday is the first visible day (today's checkouts show):
+        otherwise you always land on the 1st. Desktop keeps the month start.
+    --}}
+    <div
+        class="calendar-scroll relative overflow-x-auto overscroll-x-contain rounded-ui border border-border bg-surface max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 print:mx-0 print:overflow-visible print:rounded-none"
+        wire:loading.class="opacity-60"
+        x-data="{
+            toToday() {
+                if (! window.matchMedia('(width < 64rem)').matches) return;
+                const today = this.$el.querySelector('[data-today]');
+                const column = this.$el.querySelector('[data-apartment-column]');
+                if (today) this.$el.scrollLeft = today.offsetLeft - today.offsetWidth - (column?.offsetWidth ?? 0);
+            },
+        }"
+        @unless ($highlight) x-init="$nextTick(() => toToday())" @endunless
+        x-on:calendar-today.window="$nextTick(() => toToday())"
+    >
+        <div class="calendar-sheet w-full">
             {{-- Header: weekday, day number, holiday, M/T --}}
-            <div class="grid border-b border-divider bg-surface-alt" style="grid-template-columns: {{ $columns }}">
-                <div class="sticky left-0 z-20 row-span-2 flex items-end border-r border-divider bg-surface-alt px-3 pb-1.5 text-xs font-semibold text-muted">
-                    {{ __('calendar.apartment_column') }}
+            <div class="calendar-row grid border-b border-divider bg-surface-alt" style="grid-template-columns: var(--calendar-cols)">
+                <div data-apartment-column class="sticky left-0 z-20 row-span-2 flex items-end border-r border-divider bg-surface-alt px-2 pb-1.5 text-xs font-semibold text-muted sm:px-3">
+                    <span class="max-sm:hidden">{{ __('calendar.apartment_column') }}</span>
+                    <span class="sm:hidden">{{ __('calendar.apartment_column_short') }}</span>
                 </div>
                 @foreach ($grid->days as $day)
                     <div
@@ -68,6 +89,7 @@
                             'bg-accent-soft' => $day->isToday,
                         ])
                         @if ($day->holiday) title="{{ __('calendar.holiday', ['name' => $day->holiday]) }}" @endif
+                        @if ($day->isToday) data-today @endif
                     >
                         <span class="text-[10px] font-semibold uppercase text-faint">{{ \Illuminate\Support\Str::substr($day->date->locale('es')->minDayName, 0, 1) }}</span>
                         <span @class([
@@ -92,8 +114,8 @@
             @foreach ($grid->rows as $row)
                 <div
                     wire:key="row-{{ $row->apartment->id }}"
-                    class="grid h-[62px] border-b border-divider-soft"
-                    style="grid-template-columns: {{ $columns }}; grid-template-rows: 62px"
+                    class="calendar-row calendar-apartment-row grid h-[62px] border-b border-divider-soft"
+                    style="grid-template-columns: var(--calendar-cols); grid-template-rows: 62px"
                 >
                     <x-calendar.apartment-cell :apartment="$row->apartment" />
 
@@ -122,8 +144,8 @@
             @endforeach
 
             {{-- Free apartments per night --}}
-            <div class="grid bg-surface-alt" style="grid-template-columns: {{ $columns }}">
-                <div class="sticky left-0 z-20 border-r border-divider bg-surface-alt px-3 py-2 text-xs font-semibold text-muted">
+            <div class="calendar-row grid bg-surface-alt" style="grid-template-columns: var(--calendar-cols)">
+                <div class="sticky left-0 z-20 border-r border-divider bg-surface-alt px-2 py-2 text-xs font-semibold leading-tight text-muted sm:px-3">
                     {{ __('calendar.free_per_night') }}
                 </div>
                 @foreach ($grid->freeByNight as $i => $free)

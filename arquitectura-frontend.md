@@ -58,7 +58,7 @@ El mockup usa **navegación superior**, no barra lateral. El starter kit de Live
 | Usuario | Nombre + avatar circular 32px **con el color del empleado** y su inicial | El avatar recuerda a cada uno cuál es su color. Al tocarlo, el menú del starter kit (perfil, salir) |
 
 - Altura mínima 60px, fondo `surface`, borde inferior `border`.
-- Hace `flex-wrap`: en pantallas angostas la nav baja a una segunda línea. Con `flux:navbar` se puede usar su versión mobile.
+- Debajo de `lg` la nav se pliega en un botón de menú (ver Responsive en §6).
 
 ### Contenedor de página
 - Fondo `canvas` (#F4F4F1); `main` con padding 24px y `gap` 16–18px entre bloques.
@@ -297,7 +297,8 @@ Es la grilla del Excel: **filas = departamentos, columnas = días partidos en M/
 - ← / → (mes anterior / siguiente), título del período ("Noviembre 2026"), botón **Hoy**.
 - Segmentado **Mes / 2 semanas**: cambia la ventana. La ventana es solo un rango de fechas: no hay lógica de meses (ver CLAUDE.md).
 - Resumen: "17 deptos activos · 35 reservas".
-- A la derecha: **Buscar disponibilidad** (secundario) y **Nueva reserva** (primario). Los dos van al buscador, porque toda reserva nueva empieza ahí.
+- A la derecha: **Imprimir** (secundario) y **Buscar disponibilidad / reservar** (primario, un solo botón: buscar y reservar son el mismo flujo, porque toda reserva nueva empieza en el buscador).
+- **Imprimir** abre el diálogo de impresión del navegador, que también guarda como PDF. Imprime **solo la grilla del mes completo** de la ventana visible (en la vista de 2 semanas pasa primero a Mes), en una hoja A4 horizontal: sin el header de la app, sin título, sin botones ni leyenda. Son reglas `@media print` en `app.css` (clases `print:hidden` y la sección "Print / PDF of the calendar"); no hay librería de PDF.
 
 **Leyenda** (12px): "Responsable" + muestra de color y nombre de cada empleado activo · separador · iconos de No movible, Entrada temprana, Salida tardía, Cochera, Desayuno.
 
@@ -318,7 +319,7 @@ Es la grilla del Excel: **filas = departamentos, columnas = días partidos en M/
 ```
 
 - **Columna fija** de 132px (`position: sticky; left: 0`) con número de depto (15px/700), capacidad y badge "Inactivo" si corresponde. La grilla scrollea en horizontal dentro de su tarjeta; la página no.
-- **Columnas:** cada día mide `--day-w` (40px por defecto; en el mockup se ajusta entre 32 y 64) y se parte en dos medias jornadas, con una línea central tenue. Los fines de semana tienen fondo `weekend`; hoy, `accent-softer`, y el número en píldora `accent`.
+- **Columnas:** el calendario usa **todo el ancho de la pantalla** (sin el máximo de 1440px de las otras páginas). Cada día se estira para llenarlo y nunca mide menos de `--day-w` (52px en Mes, 96px en 2 semanas); si no entra, la grilla scrollea dentro de su tarjeta. Cada día se parte en dos medias jornadas, con una línea central tenue. Los fines de semana tienen fondo `weekend`; hoy, `accent-softer`, y el número en píldora `accent`.
 - **Filas** de 62px; el bloque mide 52px de alto, con 5px arriba y abajo.
 - **Departamentos inactivos:** fondo rayado (`repeating-linear-gradient` 135°) y número en gris. Se muestran solo si tienen reservas en la ventana (regla de `CalendarQuery`).
 - **Fila de pie "Libres (noche)":** cuántos deptos activos quedan libres esa noche. En rojo y negrita cuando son 3 o menos: es la alarma de "nos estamos llenando".
@@ -469,6 +470,14 @@ Lo usan el drawer Nueva reserva y el panel Editar. **Implementado como trait** (
   - Botones **Guardar cambios** / **Crear cliente** y **Nueva reserva para este cliente** (→ `/buscador?cliente={id}`).
   - **Historial de reservas:** una fila por reserva con el color del empleado, "Depto 202 · 3 pers.", "10/11 al 14/11/2026 · Señado $100.000" y badge **Próxima / En curso / Pasada / Cancelada**. Las canceladas van tachadas y con fondo `surface-alt`. Al tocar una, se abre su panel de detalle. **Es el "historial del cliente" que pide CLAUDE.md.**
 
+### 5.6b Pendientes a facturar (`/pendientes-a-facturar`)
+
+- Cabecera: "Pendientes a facturar" + qué reservas entran. En el menú: **A facturar**.
+- **Filtro:** checkbox "Incluir pagos en efectivo" (en la URL, `?efectivo=true`). Por defecto solo transferencias. Al lado, el resumen: "N reservas · $X cobrados sin facturar".
+- **Tabla** (`Billing\Pending`, consulta `PendingInvoicesQuery`): Cliente · DNI/CUIT · Reserva (depto y fechas) · Estado (badge Señado / Pagado, + Cancelada) · Tipo de pago ("Falta tipo de pago" en naranja si no hay) · Monto recibido. Toda la fila es clickeable.
+- **Drawer de facturación** (`Billing\InvoiceDrawer`, montado en el layout, evento `open-invoice`): monto total recibido en grande con sus badges, CUIT/DNI, nombre del cliente y el botón **Facturada**, que marca la reserva y la saca de la lista. Si el cliente no tiene DNI/CUIT, un aviso con "Ver ficha". "Ver reserva" abre su panel encima.
+- **Facturada en los formularios:** checkbox junto al tipo de pago en Nueva reserva y en Editar, siempre visible. En el detalle de la reserva, una fila con el badge Facturada / No facturada, quién y cuándo, y el botón para cambiarlo (también en canceladas).
+
 ### 5.7 Departamentos (`/departamentos`)
 
 - Cabecera: "Departamentos" + "17 activos de 18. Un departamento con reservas futuras no se puede desactivar." + **Nuevo departamento**.
@@ -542,11 +551,13 @@ El input de monto acepta "$ 80.000", "80000" o "80.000" y lo normaliza al guarda
 - Contraste: los grises de texto (`muted`, `subtle`, `faint`) superan 4.5:1 sobre blanco y sobre `canvas`.
 
 ### Responsive
-- La herramienta se usa sobre todo en escritorio. En pantallas chicas:
-  - El header hace wrap; la nav pasa a segunda línea o a menú.
-  - Calendario y buscador: scroll horizontal **dentro de su tarjeta**, con la columna de depto fija.
-  - Tablas de los ABM: `min-width` + `overflow-x: auto`.
-  - Los drawers ocupan toda la pantalla.
+- La herramienta se usa sobre todo en escritorio, pero todo funciona en el celular **sin scroll horizontal de la página** (verificado a 320 y 375 px). Cortes: `sm` (640px) para teléfono y `lg` (1024px) para la nav.
+  - **Header:** debajo de `lg` la nav se pliega en un botón de menú (Alpine, `x-data`) que abre los mismos links en una lista a lo ancho; el header queda en una línea.
+  - **Contenedor:** padding 16px en el teléfono, 24px desde `sm`. El h1 de página baja a 22px.
+  - **Calendario:** la toolbar se reacomoda (período + Hoy / rango / acciones), "Imprimir" queda solo con el ícono y la leyenda se pliega en un `<details>` "Referencias". La grilla va de borde a borde, la columna de depto baja a 64px (`--apartment-w`) y, debajo de `lg`, al cargar y al tocar "Hoy" la grilla scrollea hasta ayer (evento `calendar-today`).
+  - **Buscador:** debajo de `lg` cada depto disponible es una tarjeta (número, ajuste, días sueltos, botón) con el mapa de ocupación en su propia franja con scroll lateral y los números de día arriba.
+  - **Tablas de los ABM** (`.stack-table` en `app.css`): debajo de `sm` cada fila es una tarjeta; la primera celda es el título y las demás muestran su columna con `data-label`.
+  - **Drawers:** ocupan toda la pantalla debajo de `md` (sin la franja que deja el `<dialog>`), con padding 20px y botones de pie a lo ancho.
 
 ---
 

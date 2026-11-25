@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Concerns;
 
+use App\Actions\Reservations\SetInvoiced;
 use App\Domain\PaymentMethod;
 use App\Domain\PaymentStatus;
 use App\Domain\ReservationWarnings;
@@ -31,6 +32,9 @@ trait EditsReservationDetails
 
     public string $amount = '';
 
+    /** Facturada. Saved through SetInvoiced, not through the reservation payload. */
+    public bool $is_invoiced = false;
+
     public bool $is_movable = true;
 
     /** @var list<int> */
@@ -49,6 +53,7 @@ trait EditsReservationDetails
         $this->payment_status = PaymentStatus::Deposit->value;
         $this->payment_method = null;
         $this->amount = '';
+        $this->is_invoiced = false;
         $this->is_movable = true;
         $this->extra_ids = [];
         $this->extra_mattresses = 0;
@@ -62,6 +67,7 @@ trait EditsReservationDetails
         $this->payment_status = $reservation->payment_status->value;
         $this->payment_method = $reservation->payment_method?->value;
         $this->amount = $reservation->amount !== null ? Format::money($reservation->amount) : '';
+        $this->is_invoiced = $reservation->isInvoiced();
         $this->is_movable = $reservation->is_movable;
         $this->extra_ids = $reservation->extras->pluck('id')->map(fn ($id) => (int) $id)->all();
         $this->extra_mattresses = $reservation->extra_mattresses;
@@ -84,6 +90,14 @@ trait EditsReservationDetails
             'notes' => $this->notes,
             'extra_ids' => $this->extra_ids,
         ];
+    }
+
+    /**
+     * Applies the "Facturada" checkbox once the reservation is saved.
+     */
+    protected function saveInvoiced(Reservation $reservation): void
+    {
+        app(SetInvoiced::class)($reservation, $this->is_invoiced, auth()->user());
     }
 
     #[Computed]

@@ -8,7 +8,7 @@
     </x-page-header>
 
     <div class="overflow-x-auto rounded-ui border border-border bg-surface">
-        <table class="w-full min-w-[560px] text-sm">
+        <table class="stack-table w-full min-w-[560px] text-sm">
             <thead class="bg-surface-alt text-left text-xs font-semibold text-muted">
                 <tr class="border-b border-divider">
                     <th scope="col" class="px-4 py-2.5">{{ __('employees.columns.employee') }}</th>
@@ -33,8 +33,8 @@
                                 @endif
                             </button>
                         </td>
-                        <td class="px-4 py-2 text-ink-2">{{ $employee->email }}</td>
-                        <td class="px-4 py-2"><x-status-badge :active="$employee->is_active" /></td>
+                        <td data-label="{{ __('employees.columns.email') }}" class="px-4 py-2 text-ink-2">{{ $employee->email }}</td>
+                        <td data-label="{{ __('employees.columns.status') }}" class="px-4 py-2"><x-status-badge :active="$employee->is_active" /></td>
                     </tr>
                 @endforeach
             </tbody>

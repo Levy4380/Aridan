@@ -9,9 +9,11 @@ return [
     'range_two_weeks' => '2 semanas',
     'summary_apartments' => '{1} 1 depto activo|[0,*] :count deptos activos',
     'summary_reservations' => '{1} 1 reserva|[0,*] :count reservas',
-    'search' => 'Buscar disponibilidad',
-    'new_reservation' => 'Nueva reserva',
+    'search_and_book' => 'Buscar disponibilidad / reservar',
+    'search_and_book_short' => 'Buscar y reservar',
+    'print' => 'Imprimir',
 
+    'legend' => 'Referencias',
     'legend_responsible' => 'Responsable',
     'legend_fixed' => 'No movible',
     'legend_early' => 'Entrada temprana',
@@ -20,6 +22,7 @@ return [
     'legend_breakfast' => 'Desayuno',
 
     'apartment_column' => 'Depto · pers.',
+    'apartment_column_short' => 'Depto',
     'holiday' => 'Feriado: :name',
     'free_per_night' => 'Libres (noche)',
     'fixed' => 'No movible',

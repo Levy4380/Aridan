@@ -36,6 +36,8 @@ use Illuminate\Support\Carbon;
  * @property PaymentStatus $payment_status
  * @property string|null $amount
  * @property PaymentMethod|null $payment_method
+ * @property Carbon|null $invoiced_at
+ * @property int|null $invoiced_by_id
  * @property int $extra_mattresses
  * @property bool $is_movable
  * @property string|null $notes
@@ -68,6 +70,7 @@ class Reservation extends Model
             'payment_status' => PaymentStatus::class,
             'amount' => 'decimal:2',
             'payment_method' => PaymentMethod::class,
+            'invoiced_at' => 'datetime',
             'extra_mattresses' => 'integer',
             'is_movable' => 'boolean',
         ];
@@ -91,6 +94,22 @@ class Reservation extends Model
             $this->early_check_in,
             $this->late_check_out,
         );
+    }
+
+    /**
+     * Facturada: whether the money received was invoiced.
+     */
+    public function isInvoiced(): bool
+    {
+        return $this->invoiced_at !== null;
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function invoicedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'invoiced_by_id');
     }
 
     /**
