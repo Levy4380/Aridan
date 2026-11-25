@@ -6,6 +6,7 @@ use App\Actions\Reservations\CreateReservation;
 use App\Domain\StayRange;
 use App\Livewire\Concerns\EditsReservationDetails;
 use App\Livewire\Concerns\PicksGuest;
+use App\Models\Guest;
 use App\Queries\ApartmentSuggestions;
 use App\Queries\Availability\AvailabilitySearch;
 use App\Queries\Availability\SuggestedApartment;
@@ -46,7 +47,7 @@ class CreateForm extends Component
     public ?int $apartment_id = null;
 
     #[On('open-reservation-form')]
-    public function open(string $checkIn, string $checkOut, bool $early, bool $late, int $people, int $apartmentId): void
+    public function open(string $checkIn, string $checkOut, bool $early, bool $late, int $people, int $apartmentId, ?int $guestId = null): void
     {
         $this->resetValidation();
         $this->resetGuestPicker();
@@ -58,6 +59,10 @@ class CreateForm extends Component
         $this->late_check_out = $late;
         $this->people_count = max(1, $people);
         $this->apartment_id = $apartmentId;
+
+        if ($guestId && Guest::whereKey($guestId)->exists()) {
+            $this->selectGuest($guestId);
+        }
 
         unset($this->options);
         $this->show = true;

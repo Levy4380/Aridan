@@ -3,7 +3,36 @@
 @endphp
 
 <div class="mx-auto flex w-full max-w-[1280px] flex-col gap-4">
-    <x-page-header :title="__('availability.title')" :description="__('availability.description')" />
+    @if ($editing)
+        <x-page-header :title="__('availability.edit.title')" :description="__('availability.edit.description')" />
+
+        <flux:callout variant="secondary" icon="pencil-square" data-test="editing-banner">
+            <flux:callout.text>
+                {{ __('availability.edit.banner', [
+                    'guest' => $editing->guest->full_name,
+                    'number' => $editing->apartment->number,
+                    'from' => \App\Support\Format::date($editing->check_in_date),
+                    'to' => \App\Support\Format::date($editing->check_out_date),
+                ]) }}
+            </flux:callout.text>
+            <x-slot name="actions">
+                <flux:button size="sm" variant="ghost" :href="route('calendar', ['desde' => $editing->check_in_date->startOfMonth()->toDateString(), 'reserva' => $editing->id])" wire:navigate>
+                    {{ __('availability.edit.back') }}
+                </flux:button>
+            </x-slot>
+        </flux:callout>
+    @else
+        <x-page-header :title="__('availability.title')" :description="__('availability.description')" />
+    @endif
+
+    @if ($forGuest && ! $editing)
+        <flux:callout variant="secondary" icon="user" data-test="for-guest">
+            <flux:callout.text>{{ __('availability.for_guest', ['name' => $forGuest->full_name]) }}</flux:callout.text>
+            <x-slot name="actions">
+                <flux:button size="sm" variant="ghost" wire:click="$set('guestId', null)">{{ __('availability.for_guest_clear') }}</flux:button>
+            </x-slot>
+        </flux:callout>
+    @endif
 
     {{-- Search form: no "Buscar" button, results follow the fields. --}}
     <div class="flex flex-wrap items-end gap-x-5 gap-y-3 rounded-ui border border-border bg-surface p-4">
@@ -40,6 +69,37 @@
         </div>
     @else
         <div class="flex flex-col gap-4" wire:loading.class="opacity-60">
+            {{-- Edit mode: short confirmation of the change --}}
+            @if ($confirmApartment)
+                <div role="alertdialog" aria-labelledby="confirm-change-title" class="flex flex-col gap-3 rounded-ui border-2 border-accent bg-accent-softer p-4" data-test="confirm-change">
+                    <p id="confirm-change-title" class="text-[17px] font-bold text-ink">
+                        {{ __('availability.edit.confirm', [
+                            'guest' => $editing->guest->full_name,
+                            'number' => $confirmApartment->number,
+                            'from' => \App\Support\Format::date($stay->checkIn),
+                            'to' => \App\Support\Format::date($stay->checkOut),
+                            'people' => \App\Support\Format::people($peopleCount),
+                        ]) }}
+                    </p>
+                    @foreach ($changeWarnings as $warning)
+                        <flux:callout variant="warning" icon="exclamation-triangle">
+                            <flux:callout.text>{{ $warning->message }}</flux:callout.text>
+                        </flux:callout>
+                    @endforeach
+                    @error('reservation')
+                        <flux:callout variant="danger" icon="x-circle" role="alert">
+                            <flux:callout.text>{{ $message }}</flux:callout.text>
+                        </flux:callout>
+                    @enderror
+                    <div class="flex justify-end gap-2">
+                        <flux:button variant="filled" wire:click="cancelChange">{{ __('availability.edit.cancel') }}</flux:button>
+                        <flux:button variant="primary" wire:click="applyChange" data-test="apply-change-button">
+                            {{ $changeWarnings ? __('reservations.create.save_anyway') : __('availability.edit.apply') }}
+                        </flux:button>
+                    </div>
+                </div>
+            @endif
+
             {{-- Group 1: available --}}
             <section class="flex flex-col gap-2" aria-labelledby="available-heading">
                 <div class="flex flex-wrap items-baseline justify-between gap-2">
@@ -100,7 +160,18 @@
                                     </span>
                                     <x-availability.gap :availability="$option->availability" class="text-[13px] text-ink-2" />
                                     <x-occupancy-map :days="$option->availability->map" :label="__('availability.map.label', ['number' => $apartment->number])" />
-                                    <span class="flex justify-end">
+                                    <span class="flex items-center justify-end gap-2">
+                                        @if ($editing)
+                                            @if ($apartment->id === $editing->apartment_id)
+                                                <span class="text-xs font-bold text-accent">{{ __('availability.edit.current') }}</span>
+                                            @endif
+                                            <flux:button
+                                                size="sm"
+                                                :variant="$option->isBest() ? 'primary' : 'filled'"
+                                                wire:click="chooseForEditing({{ $apartment->id }})"
+                                                data-test="use-{{ $apartment->number }}"
+                                            >{{ __('availability.edit.use') }}</flux:button>
+                                        @else
                                         <flux:button
                                             size="sm"
                                             :variant="$option->isBest() ? 'primary' : 'filled'"
@@ -111,9 +182,11 @@
                                                 'late' => $stay->lateCheckOut,
                                                 'people' => $peopleCount,
                                                 'apartmentId' => $apartment->id,
+                                                'guestId' => $forGuest?->id,
                                             ]) }})"
                                             data-test="reserve-{{ $apartment->number }}"
                                         >{{ __('availability.reserve') }}</flux:button>
+                                        @endif
                                     </span>
                                 </div>
                             @endforeach

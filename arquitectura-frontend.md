@@ -440,7 +440,7 @@ Se abre al tocar "Reservar". Recibe las fechas, personas, flags y el depto elegi
 3. Se ejecuta `CreateReservation`. Si falla por superposición (otro empleado la cargó al mismo tiempo), se muestra el error en el drawer y se recalculan los resultados del buscador.
 4. Si sale bien, redirige al calendario en la ventana de la reserva, con un aviso de éxito y el bloque nuevo resaltado unos segundos.
 
-**Modo edición del buscador** (`/buscador?reserva=123`): lo abre el "Cambiar" de Editar. Arranca con los datos de la reserva, muestra una franja "Cambiando fechas de la reserva de Raúl Silva" con un link para volver, y calcula la disponibilidad **excluyendo esa reserva**. El botón de cada fila dice **"Usar este"** y abre una confirmación corta que ejecuta `UpdateReservation`.
+**Modo edición del buscador** (`/buscador?editar=123`; el parámetro no es `reserva` porque `?reserva=` abre el panel en cualquier página): lo abre el **Cambiar** del panel Editar. Arranca con los datos de la reserva (lo que ya venga en la URL tiene prioridad, así una recarga no pierde lo que se estaba probando), muestra una franja "Cambiando la reserva de Raúl Silva (depto 205, del 08/12 al 12/12)" con "Volver a la reserva", y calcula la disponibilidad **excluyendo esa reserva**: su propio depto aparece como disponible, marcado "Actual". El botón de cada fila dice **"Usar este"** y abre una confirmación corta arriba de los resultados ("¿Pasar la reserva de … al depto 305, del … al …, para N pers.?"), con las advertencias que correspondan (capacidad, no movible) y **Confirmar cambio** / "Guardar igual". Ejecuta `UpdateReservation` con las nuevas fechas, personas y depto, y el resto de la reserva queda igual. Vuelve al calendario con el panel abierto y el bloque resaltado.
 
 **Desde un cliente** (`/buscador?cliente=45`): lo abre "Nueva reserva para este cliente". El drawer arranca con ese cliente ya elegido.
 
@@ -460,7 +460,7 @@ Lo usan el drawer Nueva reserva y el panel Editar. **Implementado como trait** (
 
 - Cabecera: "Clientes" + "El teléfono es obligatorio y único. El DNI/CUIT es opcional, pero no se puede repetir." + **Nuevo cliente**.
 - **Buscador** arriba de la tabla: "Buscar por nombre, teléfono o DNI/CUIT". Ignora puntos, guiones y espacios.
-- **Tabla:** Nombre · Teléfono · DNI/CUIT ("Sin cargar" en gris) · Reservas (sin contar las canceladas) · Última estadía. Cada fila es un botón que abre la ficha. Para pocas filas no hace falta paginar; si crecen, se suma paginación de Livewire.
+- **Tabla:** Nombre · Teléfono · DNI/CUIT ("Sin cargar" en gris) · Reservas (sin contar las canceladas) · Última estadía (la última que ya empezó; las reservas futuras no cuentan). Cada fila es un botón que abre la ficha. Para pocas filas no hace falta paginar; si crecen, se suma paginación de Livewire.
 - Vacío: "No hay clientes que coincidan. Podés cargar uno nuevo."
 - **Drawer de ficha** (560px):
   - Título con el nombre + "Cliente desde mar 2025".
@@ -505,8 +505,16 @@ Lo usan el drawer Nueva reserva y el panel Editar. **Implementado como trait** (
 - `wire:loading` sobre los resultados del buscador (opacidad reducida, sin spinner a pantalla completa) y en los botones de guardar (deshabilitado + "Guardando…").
 - Navegación con `wire:navigate` y la barra de progreso que trae Livewire.
 
+### Drawers separados de las páginas
+- **Los drawers no viven en las páginas: están montados una sola vez en el layout** (`layouts/app.blade.php`): `Reservations\Panel`, `Guests\Drawer`, `Apartments\Drawer` y `Employees\Drawer`. Las páginas solo muestran listados.
+- **Se abren desde cualquier pantalla con un evento:** `open-reservation`, `open-guest`, `open-apartment`, `open-employee` (con `id`, o sin él para un alta). Ejemplo: `wire:click="$dispatch('open-guest', { id: 45 })"`.
+- **Cerrar te deja donde estabas.** Se apilan: desde el panel de una reserva, "Ver ficha" abre el cliente encima; al cerrarlo volvés al panel, y al cerrar el panel, a la pantalla de fondo. Desde el historial del cliente, una reserva abre su panel encima.
+- **Links directos en cualquier página:** `?reserva=123` y `?cliente=45` abren el drawer sobre la pantalla actual. `/reservas/{id}` sigue llevando al calendario en el mes de la reserva.
+- La excepción es el drawer de **Nueva reserva**, que vive en el buscador porque toda alta empieza ahí.
+- Mientras están cerrados no consultan nada: solo cargan datos al abrirse.
+
 ### Refresco entre componentes
-- Las actions de escritura disparan el evento `reservation-changed`. El calendario, el buscador y las fichas abiertas lo escuchan (`#[On('reservation-changed')]`) y recalculan.
+- Cada escritura dispara un evento: `reservation-changed`, `guest-changed`, `apartment-changed`, `employee-changed`. Las pantallas y los drawers abiertos que muestran esos datos lo escuchan (`#[On(...)]`) y recalculan. Así, guardar en un drawer actualiza la pantalla de fondo.
 - No hay tiempo real entre empleados en esta iteración: lo que cargó otro se ve al recargar o al navegar. La superposición igual está protegida por la action y la *exclusion constraint*.
 
 ### Formatos (helpers en `App\Support\Format`)
@@ -551,10 +559,11 @@ app/
     Availability/Search.php
     Reservations/CreateForm.php
     Reservations/Panel.php            # view / edit / move / cancel
-    Guests/Index.php
-    Guests/GuestPicker.php
-    Apartments/Index.php
-    Employees/Index.php
+    Guests/Index.php                  # listado
+    Guests/Drawer.php                 # ficha (montada en el layout)
+    Concerns/PicksGuest.php           # selector de cliente (trait + partial)
+    Apartments/Index.php  Apartments/Drawer.php
+    Employees/Index.php   Employees/Drawer.php
     Forms/ReservationForm.php  GuestForm.php  ApartmentForm.php  EmployeeForm.php
   Support/
     Format.php                        # fechas, montos, noches
@@ -599,7 +608,7 @@ tests/
 |---|---|---|---|---|
 | 1 | Nombre del estado sin pago | "Pendiente" | CLAUDE.md dice "Reservado" | Usar **"Reservado"**, que es como lo llaman hoy. Si se prefiere "Pendiente", actualizar CLAUDE.md. |
 | 2 | Detalle y edición | Dos pantallas separadas | El backend tiene solo `/reservas/{reservation}` = edición | **Hecho:** un solo panel con modos (`Reservations\Panel`); `/reservas/{reservation}` (`reservations.show`) abre el calendario con el panel. |
-| 3 | Cambiar fechas de una reserva existente | "Cambiar" lleva al buscador | El buscador está pensado solo para altas | Sumar el **modo edición del buscador** (5.4). `AvailabilityQuery` necesita un parámetro para excluir una reserva. |
+| 3 | Cambiar fechas de una reserva existente | "Cambiar" lleva al buscador | El buscador está pensado solo para altas | **Hecho:** modo edición del buscador (5.4), con `AvailabilityQuery` excluyendo la reserva. |
 | 4 | Cliente nuevo desde el drawer | Link a la pantalla Clientes | El backend dice "en el mismo formulario" | Resolver dentro del drawer con `GuestPicker` (5.5). |
 | 5 | Advertencias | Capacidad en vivo, sin paso de confirmación | El backend pide "Confirmar igual" | Las dos cosas: aviso en vivo + "Guardar igual" si quedan advertencias al guardar. |
 | 6 | Datos que el detalle no muestra | Faltan entrada temprana / salida tardía, colchones y tipo de pago | Son campos de la reserva | Agregarlos a los tiles (Personas: "3 + 1 colchón"; Pago: "Pagado · $200.000 · efectivo"; una línea "Entrada temprana" junto a las fechas). |

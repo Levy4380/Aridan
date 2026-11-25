@@ -137,5 +137,4 @@
         </div>
     </div>
 
-    <livewire:reservations.panel />
 </div>

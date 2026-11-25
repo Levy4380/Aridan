@@ -73,6 +73,9 @@ class Index extends Component
     }
 
     #[On('reservation-changed')]
+    #[On('apartment-changed')]
+    #[On('employee-changed')]
+    #[On('guest-changed')]
     public function refresh(): void
     {
         // Re-render with fresh data.

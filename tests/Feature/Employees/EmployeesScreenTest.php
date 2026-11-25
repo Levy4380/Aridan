@@ -1,7 +1,7 @@
 <?php
 
 use App\Actions\Employees\DeactivateEmployee;
-use App\Livewire\Employees\Index;
+use App\Livewire\Employees\Drawer;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -23,15 +23,15 @@ test('the employees screen lists every employee, inactive ones included', functi
 });
 
 test('a new employee can be created and log in', function () {
-    Livewire::test(Index::class)
-        ->call('create')
+    Livewire::test(Drawer::class)
+        ->call('open')
         ->assertSet('form.color', '#81c784') // first palette color nobody uses
         ->set('form.name', 'Ana Gómez')
         ->set('form.email', 'Ana@Example.com')
         ->set('form.password', 'secreto123')
         ->call('save')
         ->assertHasNoErrors()
-        ->assertSet('showForm', false);
+        ->assertSet('show', false);
 
     $ana = User::where('email', 'ana@example.com')->sole();
     expect($ana->color)->toBe('#81c784')
@@ -40,8 +40,8 @@ test('a new employee can be created and log in', function () {
 });
 
 test('a repeated color is allowed but warned about', function () {
-    Livewire::test(Index::class)
-        ->call('create')
+    Livewire::test(Drawer::class)
+        ->call('open')
         ->call('pickColor', '#4FC3F7')
         ->assertSee(__('warnings.color_in_use', ['name' => 'Tomás']))
         ->set('form.name', 'Ana Gómez')
@@ -56,8 +56,8 @@ test('a repeated color is allowed but warned about', function () {
 test('a custom color can be used', function () {
     $victor = User::factory()->create(['color' => '#81c784']);
 
-    Livewire::test(Index::class)
-        ->call('edit', $victor->id)
+    Livewire::test(Drawer::class)
+        ->call('open', $victor->id)
         ->set('form.color', '#1E3A8A')
         ->call('save')
         ->assertHasNoErrors();
@@ -68,16 +68,16 @@ test('a custom color can be used', function () {
 test('another employee can be deactivated and reactivated', function () {
     $victor = User::factory()->create();
 
-    Livewire::test(Index::class)
-        ->call('edit', $victor->id)
+    Livewire::test(Drawer::class)
+        ->call('open', $victor->id)
         ->set('form.is_active', false)
         ->call('save')
         ->assertHasNoErrors();
 
     expect($victor->fresh()->is_active)->toBeFalse();
 
-    Livewire::test(Index::class)
-        ->call('edit', $victor->id)
+    Livewire::test(Drawer::class)
+        ->call('open', $victor->id)
         ->set('form.is_active', true)
         ->call('save');
 
@@ -91,8 +91,8 @@ test('an employee can not deactivate themselves', function () {
 test('editing an employee keeps their password', function () {
     $victor = User::factory()->create(['password' => Hash::make('original')]);
 
-    Livewire::test(Index::class)
-        ->call('edit', $victor->id)
+    Livewire::test(Drawer::class)
+        ->call('open', $victor->id)
         ->set('form.name', 'Víctor Pérez')
         ->call('save')
         ->assertHasNoErrors();

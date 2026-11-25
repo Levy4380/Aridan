@@ -1,6 +1,6 @@
 <?php
 
-use App\Livewire\Apartments\Index;
+use App\Livewire\Apartments\Drawer;
 use App\Models\Apartment;
 use App\Models\Guest;
 use App\Models\Reservation;
@@ -22,16 +22,16 @@ test('the apartments screen lists apartments and counts the active ones', functi
         ->assertSee(__('nav.apartments'));
 });
 
-test('an apartment can be created from the modal', function () {
-    Livewire::test(Index::class)
-        ->call('create')
-        ->assertSet('showForm', true)
+test('an apartment can be created from the drawer', function () {
+    Livewire::test(Drawer::class)
+        ->call('open')
+        ->assertSet('show', true)
         ->set('form.number', '401')
         ->set('form.capacity', 3)
         ->set('form.description', 'Con balcón')
         ->call('save')
         ->assertHasNoErrors()
-        ->assertSet('showForm', false);
+        ->assertSet('show', false);
 
     expect(Apartment::where('number', '401')->sole())
         ->capacity->toBe(3)
@@ -41,8 +41,8 @@ test('an apartment can be created from the modal', function () {
 test('a repeated number shows an error on the field', function () {
     Apartment::factory()->create(['number' => '401']);
 
-    Livewire::test(Index::class)
-        ->call('create')
+    Livewire::test(Drawer::class)
+        ->call('open')
         ->set('form.number', '401')
         ->set('form.capacity', 3)
         ->call('save')
@@ -51,15 +51,15 @@ test('a repeated number shows an error on the field', function () {
     expect(Apartment::count())->toBe(1);
 });
 
-test('the modal blocks deactivating an apartment with future reservations', function () {
+test('the drawer blocks deactivating an apartment with future reservations', function () {
     $apartment = Apartment::factory()->create(['number' => '205']);
     Reservation::factory()->for($apartment)
         ->for(Guest::factory()->state(['first_name' => 'Elena', 'last_name' => 'Romero']))
         ->between(now()->addDays(3)->toDateString(), now()->addDays(6)->toDateString())
         ->create();
 
-    Livewire::test(Index::class)
-        ->call('edit', $apartment->id)
+    Livewire::test(Drawer::class)
+        ->call('open', $apartment->id)
         ->assertSee(trans_choice('apartments.cannot_deactivate', 1, ['count' => 1]))
         ->assertSee('Elena Romero')
         // Even if the UI is bypassed, the action blocks it.
@@ -70,11 +70,11 @@ test('the modal blocks deactivating an apartment with future reservations', func
     expect($apartment->fresh()->is_active)->toBeTrue();
 });
 
-test('an apartment can be edited and deactivated from the modal', function () {
+test('an apartment can be edited and deactivated from the drawer', function () {
     $apartment = Apartment::factory()->create(['number' => '105', 'capacity' => 4]);
 
-    Livewire::test(Index::class)
-        ->call('edit', $apartment->id)
+    Livewire::test(Drawer::class)
+        ->call('open', $apartment->id)
         ->assertSet('form.number', '105')
         ->set('form.capacity', 5)
         ->set('form.is_active', false)

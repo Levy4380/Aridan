@@ -11,6 +11,8 @@ return [
     'nights' => '{1} 1 noche|[2,*] :count noches',
     'summary_range' => 'del :from al :to',
     'invalid_dates' => 'La salida tiene que ser posterior a la entrada.',
+    'for_guest' => 'Nueva reserva para :name: elegí fechas y departamento.',
+    'for_guest_clear' => 'Quitar',
     'people_prompt' => 'Ingresá cuántas personas son (1 o más) para ver los departamentos.',
 
     'available' => 'Disponibles (:count)',
@@ -61,5 +63,18 @@ return [
         'free' => 'libre',
         'fixed' => 'fija',
         'movable' => 'movible',
+    ],
+
+    'edit' => [
+        'title' => 'Cambiar reserva',
+        'description' => 'Elegí las nuevas fechas o personas y el departamento. La reserva no choca consigo misma.',
+        'banner' => 'Cambiando la reserva de :guest (depto :number, del :from al :to).',
+        'back' => 'Volver a la reserva',
+        'current' => 'Actual',
+        'use' => 'Usar este',
+        'confirm' => '¿Pasar la reserva de :guest al depto :number, del :from al :to, para :people?',
+        'apply' => 'Confirmar cambio',
+        'cancel' => 'Volver',
+        'saved' => 'Reserva de :guest actualizada.',
     ],
 ];

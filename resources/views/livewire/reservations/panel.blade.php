@@ -6,7 +6,7 @@
 @endphp
 
 <div>
-    <flux:modal variant="flyout" wire:model.self="show" class="w-full md:w-[560px]" data-test="reservation-panel">
+    <flux:modal variant="flyout" wire:model.self.live="show" class="w-full md:w-[560px]" data-test="reservation-panel">
         @if ($reservation)
             @php
                 $stay = $reservation->stay();
@@ -55,10 +55,9 @@
                     @case(Panel::EDIT)
                         <form wire:submit="save" class="flex flex-col gap-5">
                             <x-stay-summary :stay="$stay" :people="$reservation->people_count">
-                                @if (Route::has('availability'))
-                                    <span class="max-w-40 text-right text-xs text-subtle">{{ __('reservations.panel.change_dates_soon') }}</span>
-                                @endif
+                                <flux:button size="sm" :href="route('availability', ['editar' => $reservation->id])" wire:navigate data-test="change-dates-button">{{ __('reservations.create.change') }}</flux:button>
                             </x-stay-summary>
+                            <p class="-mt-3 text-[13px] text-subtle">{{ __('reservations.panel.change_help') }}</p>
 
                             <section class="flex flex-col gap-2">
                                 <x-section-title>{{ __('reservations.create.guest') }}</x-section-title>
@@ -205,7 +204,9 @@
 
                         <section class="flex flex-col gap-2">
                             <x-section-title>{{ __('reservations.create.guest') }}</x-section-title>
-                            <x-guest-card :guest="$reservation->guest" />
+                            <x-guest-card :guest="$reservation->guest">
+                                <flux:button size="sm" variant="ghost" wire:click="$dispatch('open-guest', { id: {{ $reservation->guest_id }} })" data-test="view-guest">{{ __('guests.view') }}</flux:button>
+                            </x-guest-card>
                         </section>
 
                         <section class="flex flex-col gap-2">

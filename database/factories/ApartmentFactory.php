@@ -15,11 +15,9 @@ class ApartmentFactory extends Factory
      */
     public function definition(): array
     {
-        $floor = fake()->numberBetween(1, 9);
-        $unit = fake()->unique()->numberBetween(1, 99);
-
         return [
-            'number' => $floor.str_pad((string) $unit, 2, '0', STR_PAD_LEFT),
+            // 4+ digits: never clashes with the real 3-digit numbers tests use ("105").
+            'number' => (string) fake()->unique()->numberBetween(1000, 999999),
             'capacity' => fake()->numberBetween(2, 5),
             'is_active' => true,
             'description' => null,

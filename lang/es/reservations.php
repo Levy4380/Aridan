@@ -5,6 +5,13 @@ return [
     'people_long' => '{1} 1 persona|[2,*] :count personas',
     'created' => 'Reserva de :guest guardada en el depto :number.',
 
+    'timing' => [
+        'upcoming' => 'Próxima',
+        'current' => 'En curso',
+        'past' => 'Pasada',
+        'cancelled' => 'Cancelada',
+    ],
+
     'half' => [
         'morning' => 'mañana',
         'afternoon' => 'tarde',
@@ -82,7 +89,7 @@ return [
         'cancel' => 'Cancelar reserva',
         'back' => 'Volver',
         'updated' => 'Cambios guardados.',
-        'change_dates_soon' => 'Para cambiar fechas o personas, por ahora cancelala y cargala de nuevo desde el buscador.',
+        'change_help' => 'Para cambiar fechas, personas o departamento se vuelve al buscador, que revisa la disponibilidad.',
 
         'move_title' => 'Mover',
         'move_to' => 'Mover al :number',

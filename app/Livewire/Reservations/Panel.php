@@ -95,6 +95,15 @@ class Panel extends Component
             : null;
     }
 
+    /** A guest, apartment or employee shown in the panel was edited in another drawer. */
+    #[On('guest-changed')]
+    #[On('apartment-changed')]
+    #[On('employee-changed')]
+    public function refresh(): void
+    {
+        unset($this->reservation);
+    }
+
     public function back(): void
     {
         $this->mode = self::VIEW;

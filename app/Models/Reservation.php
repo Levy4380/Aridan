@@ -94,6 +94,24 @@ class Reservation extends Model
     }
 
     /**
+     * Where the reservation stands today: upcoming, current, past or cancelled.
+     */
+    public function timing(): string
+    {
+        if ($this->trashed()) {
+            return 'cancelled';
+        }
+
+        $now = StayRange::slot(CarbonImmutable::today(), now()->hour < 12 ? StayRange::MORNING : StayRange::AFTERNOON);
+
+        return match (true) {
+            $this->start_slot > $now => 'upcoming',
+            $this->end_slot > $now => 'current',
+            default => 'past',
+        };
+    }
+
+    /**
      * Reservations that touch the slot window [$fromSlot, $toSlot).
      *
      * @param  Builder<Reservation>  $query

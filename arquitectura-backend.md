@@ -161,6 +161,7 @@ Cada action es una clase invocable en `app/Actions`, con una única responsabili
 | `CancelReservation` | Guarda `cancelled_by_id` y hace el soft delete. El departamento queda libre en esas fechas. | — |
 | `DeactivateApartment` | Pone `is_active = false`. | El departamento tiene reservas futuras (`end_slot > currentSlot`). |
 | `ActivateApartment` | Pone `is_active = true`. | — |
+| `SaveGuest` (`app/Actions/Guests`) | Alta y edición de un cliente desde la pantalla Clientes. | Falta nombre, apellido o teléfono; el teléfono o el DNI/CUIT (normalizados) ya son de otro cliente. |
 | `CreateApartment` / `UpdateApartment` | Alta y edición de número, capacidad, descripción y orden. La activación va por las actions de arriba. | El número se repite; la capacidad es menor a 1. |
 
 ### Errores y advertencias
