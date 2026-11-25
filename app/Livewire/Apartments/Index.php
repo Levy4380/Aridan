@@ -8,6 +8,7 @@ use App\Actions\Apartments\DeactivateApartment;
 use App\Actions\Apartments\UpdateApartment;
 use App\Livewire\Forms\ApartmentForm;
 use App\Models\Apartment;
+use App\Models\Reservation;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -31,6 +32,20 @@ class Index extends Component
     public function apartments(): Collection
     {
         return Apartment::query()->ordered()->get();
+    }
+
+    /**
+     * Future reservations of the apartment open in the modal: they block
+     * deactivating it.
+     *
+     * @return Collection<int, Reservation>
+     */
+    #[Computed]
+    public function futureReservations(): Collection
+    {
+        return $this->form->apartment
+            ? $this->form->apartment->futureReservations()->with(['guest', 'employee'])->get()
+            : new Collection;
     }
 
     public function create(): void

@@ -63,7 +63,37 @@
 
             <flux:textarea wire:model="form.description" :label="__('apartments.fields.description')" :placeholder="__('apartments.fields.description_placeholder')" rows="2" />
 
-            <flux:switch wire:model="form.is_active" :label="__('apartments.fields.active')" :description="__('apartments.fields.active_help')" align="left" />
+            @php($blocked = $form->apartment?->is_active && $this->futureReservations->isNotEmpty())
+
+            <div class="flex flex-col gap-2">
+                <flux:switch wire:model="form.is_active" :label="__('apartments.fields.active')" :description="__('apartments.fields.active_help')" :disabled="$blocked" align="left" />
+                <flux:error name="is_active" />
+
+                @if ($blocked)
+                    <flux:callout variant="warning" icon="exclamation-triangle" data-test="cannot-deactivate-warning">
+                        <flux:callout.text>
+                            {{ trans_choice('apartments.cannot_deactivate', $this->futureReservations->count(), ['count' => $this->futureReservations->count()]) }}
+                        </flux:callout.text>
+                    </flux:callout>
+                @endif
+            </div>
+
+            @if ($this->futureReservations->isNotEmpty())
+                <div class="flex flex-col gap-1.5">
+                    <p class="text-[13px] font-bold uppercase tracking-[0.04em] text-muted">{{ __('apartments.future_reservations') }}</p>
+                    <ul class="flex max-h-48 flex-col overflow-y-auto rounded-ui border border-divider">
+                        @foreach ($this->futureReservations as $reservation)
+                            <li class="flex items-center gap-2 border-b border-divider-soft px-3 py-1.5 text-sm last:border-0">
+                                <span class="size-3 shrink-0 rounded-[2px] border border-[rgba(20,22,26,0.2)]" style="background-color: {{ $reservation->employee->color }}"></span>
+                                <span class="truncate font-medium text-ink">{{ $reservation->guest->full_name }}</span>
+                                <span class="ms-auto shrink-0 text-subtle">
+                                    {{ \App\Support\Format::date($reservation->check_in_date) }}–{{ \App\Support\Format::date($reservation->check_out_date) }}
+                                </span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
             <div class="-mx-6 -mb-6 flex justify-end gap-2 border-t border-divider bg-surface-alt px-6 py-4">
                 <flux:modal.close>

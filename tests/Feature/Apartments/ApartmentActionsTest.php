@@ -5,6 +5,8 @@ use App\Actions\Apartments\CreateApartment;
 use App\Actions\Apartments\DeactivateApartment;
 use App\Actions\Apartments\UpdateApartment;
 use App\Models\Apartment;
+use App\Models\Reservation;
+use Carbon\CarbonImmutable;
 use Database\Seeders\ApartmentSeeder;
 use Illuminate\Validation\ValidationException;
 
@@ -78,5 +80,31 @@ test('an apartment can be deactivated and activated again', function () {
     expect($apartment->fresh()->is_active)->toBeTrue();
 });
 
-test('an apartment with future reservations can not be deactivated')
-    ->todo('Needs the reservations table (construction step 5).');
+describe('deactivating with reservations', function () {
+    beforeEach(function () {
+        $this->travelTo(CarbonImmutable::parse('2026-11-25 10:00'));
+        $this->apartment = Apartment::factory()->create();
+    });
+
+    test('an apartment with future reservations can not be deactivated', function () {
+        Reservation::factory()->for($this->apartment)->between('2026-12-10', '2026-12-12')->create();
+
+        expect(fn () => app(DeactivateApartment::class)($this->apartment))->toThrow(ValidationException::class);
+        expect($this->apartment->fresh()->is_active)->toBeTrue();
+    });
+
+    test('a reservation in progress also blocks it, even on its checkout day', function () {
+        Reservation::factory()->for($this->apartment)->between('2026-11-20', '2026-11-25')->create();
+
+        expect(fn () => app(DeactivateApartment::class)($this->apartment))->toThrow(ValidationException::class);
+    });
+
+    test('past and cancelled reservations do not block it', function () {
+        Reservation::factory()->for($this->apartment)->between('2026-11-01', '2026-11-24')->create();
+        Reservation::factory()->for($this->apartment)->between('2026-12-10', '2026-12-12')->create()->delete();
+
+        app(DeactivateApartment::class)($this->apartment);
+
+        expect($this->apartment->fresh()->is_active)->toBeFalse();
+    });
+});

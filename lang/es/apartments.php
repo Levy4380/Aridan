@@ -9,6 +9,8 @@ return [
     'people' => '{1} 1 persona|[2,*] :count personas',
     'created' => 'Depto :number creado.',
     'updated' => 'Depto :number guardado.',
+    'cannot_deactivate' => '{1} No se puede desactivar: tiene 1 reserva futura. Primero movela o cancelala.|[2,*] No se puede desactivar: tiene :count reservas futuras. Primero movelas o cancelalas.',
+    'future_reservations' => 'Reservas futuras',
 
     'columns' => [
         'number' => 'Depto',

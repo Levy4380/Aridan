@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Domain\StayRange;
+use Carbon\CarbonImmutable;
 use Database\Factories\ApartmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -44,6 +47,27 @@ class Apartment extends Model
     protected function active(Builder $query): void
     {
         $query->where('is_active', true);
+    }
+
+    /**
+     * @return HasMany<Reservation, $this>
+     */
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(Reservation::class);
+    }
+
+    /**
+     * Reservations still to come or in progress (not cancelled): they end
+     * after this morning.
+     *
+     * @return HasMany<Reservation, $this>
+     */
+    public function futureReservations(): HasMany
+    {
+        return $this->reservations()
+            ->where('end_slot', '>', StayRange::slot(CarbonImmutable::today(), StayRange::MORNING))
+            ->orderBy('start_slot');
     }
 
     /**

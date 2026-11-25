@@ -52,6 +52,14 @@ composer run dev
 
 La app queda en <http://localhost:8000>. En local, el seeder crea un empleado de prueba: `test@example.com` / `password`.
 
+En local, el seeder también carga datos de prueba (empleados, clientes y dos meses de reservas) para ver el calendario con contenido. En producción solo carga los departamentos y los extras.
+
+Para traer los feriados de Argentina (en producción lo hace el scheduler una vez por mes):
+
+```bash
+php artisan holidays:sync
+```
+
 No hay registro público. Los empleados se crean con:
 
 ```bash

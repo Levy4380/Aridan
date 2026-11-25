@@ -147,7 +147,7 @@ Con fechas, personas, entrada temprana y salida tardía, el buscador arma tres g
 
 ### Feriados
 - Solo referencia visual en el calendario: no afectan ninguna regla.
-- Se traen de una **API pública de feriados de Argentina** (a elegir y verificar al implementar) con `php artisan holidays:sync`, detrás de una interfaz `HolidayProvider`, y se guardan en una tabla local. El calendario nunca consulta la API.
+- Se traen de la API pública de **ArgentinaDatos** (`/v1/feriados/{año}`, verificada el 25/11/2026) con `php artisan holidays:sync`, detrás de una interfaz `HolidayProvider`, y se guardan en una tabla local. El calendario nunca consulta la API.
 
 ### El mes no existe
 - No hay tabla, campo ni lógica atada a meses. El **calendario es una consulta** sobre una ventana de fechas cualquiera (`start_slot < window_end` y `end_slot > window_start`); una reserva que cruza el fin de mes aparece cortada en los dos.
@@ -181,7 +181,6 @@ Livewire (pantallas)  →  Actions (escriben) / Queries (leen)  →  Eloquent + 
 ## Decisiones pendientes
 
 - Verificar que Laravel Cloud soporte `btree_gist`. Si no, se omite la constraint y queda solo el `lockForUpdate`.
-- Elegir y verificar la API de feriados (ej. ArgentinaDatos).
 - Regla exacta de normalización de teléfonos argentinos (`PhoneNormalizer`).
 - Las diferencias entre el mockup y la documentación de `arquitectura-frontend.md` (§8).
 

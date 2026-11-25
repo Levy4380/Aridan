@@ -3,21 +3,35 @@
 namespace App\Actions\Apartments;
 
 use App\Models\Apartment;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Deactivates an apartment so it can no longer be booked.
  *
- * Business rule (CLAUDE.md): an apartment with future reservations cannot be
- * deactivated. That check is added together with the reservations table
- * (construction step 5); until then there are no reservations to block on.
- * See the pending test in tests/Feature/Apartments/ApartmentActionsTest.php.
+ * One of the two hard blocks of the system (CLAUDE.md): an apartment with
+ * future reservations (including one in progress) cannot be deactivated.
+ * Cancelled reservations don't count.
  */
 class DeactivateApartment
 {
     public function __invoke(Apartment $apartment): Apartment
     {
-        $apartment->update(['is_active' => false]);
+        return DB::transaction(function () use ($apartment) {
+            // Lock the row so nobody books it while we check.
+            Apartment::lockForUpdate()->findOrFail($apartment->id);
 
-        return $apartment;
+            $future = $apartment->futureReservations()->count();
+
+            if ($future > 0) {
+                throw ValidationException::withMessages([
+                    'is_active' => trans_choice('apartments.cannot_deactivate', $future, ['count' => $future]),
+                ]);
+            }
+
+            $apartment->update(['is_active' => false]);
+
+            return $apartment;
+        });
     }
 }

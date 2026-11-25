@@ -250,7 +250,7 @@ Queda aislada en su propia clase para poder ajustar los pesos sin tocar nada má
 ## 7. Feriados
 
 - **Comando:** `php artisan holidays:sync {year?}` descarga los feriados del año pedido y del siguiente, y hace un `upsert` por `date`.
-- **Fuente:** una API pública de feriados de Argentina. **Hay que elegirla y verificarla al implementar.** Por ejemplo, ArgentinaDatos ofrece `/v1/feriados/{año}`; hay que confirmar que siga disponible, su formato y sus condiciones de uso.
+- **Fuente:** ArgentinaDatos, `https://api.argentinadatos.com/v1/feriados/{año}`, que devuelve `[{fecha, tipo, nombre}]`. Verificada el 25/11/2026; implementada en `App\Holidays\ArgentinaDatosProvider`.
 - **Abstracción:** la API se usa detrás de una interfaz `HolidayProvider`. Si cambia, se cambia una sola clase.
 - **Programación:** el scheduler de Laravel lo corre mensualmente; Laravel Cloud soporta el scheduler.
 - **Fallas:** si la API falla, se loguea y se mantienen los datos existentes. El calendario nunca consulta la API directamente.
