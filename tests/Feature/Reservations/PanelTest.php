@@ -62,7 +62,33 @@ test('editing saves what does not change the occupancy', function () {
     expect($this->reservation->fresh())
         ->notes->toBe('Llegan a las 22')
         ->employee_id->toBe($this->me->id)
-        ->amount->toBe('200000.00');
+        ->paidAmount()->toBe(200000.0);
+});
+
+test('editing loads the payments and can add the rest in cash', function () {
+    $reservation = Reservation::factory()->for($this->apartment)->between('2026-12-20', '2026-12-22')
+        ->deposit(80000, total: 200000)->create();
+
+    $panel = Livewire::test(Panel::class)
+        ->call('open', $reservation->id)
+        ->assertSee(__('reservations.panel.paid_of', ['paid' => '$80.000', 'total' => '$200.000']))
+        ->assertSee(__('reservations.create.balance', ['amount' => '$120.000']))
+        ->call('startEdit')
+        ->assertSet('total_amount', '$200.000')
+        ->assertSet('payments.0.amount', '$80.000')
+        ->assertSet('payments.0.method', 'transfer')
+        ->set('payment_status', 'paid')
+        ->call('addPayment')
+        ->set('payments.1.amount', '120.000')
+        ->set('payments.1.method', 'cash')
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertSet('mode', Panel::VIEW);
+
+    expect($reservation->fresh())
+        ->payment_status->value->toBe('paid')
+        ->paidAmount()->toBe(200000.0)
+        ->and($reservation->fresh()->payments->pluck('method')->map->value->all())->toBe(['transfer', 'cash']);
 });
 
 test('moving lists free apartments and moves it', function () {

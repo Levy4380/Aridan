@@ -63,16 +63,29 @@ class DemoSeeder extends Seeder
                     'late_check_out' => $gapAfter > 0 && fake()->boolean(15),
                     'people_count' => max(1, $apartment->capacity + fake()->randomElement([-1, 0, 0, 0, 1])),
                     'payment_status' => $status,
-                    'amount' => $status->hasPayment() ? fake()->randomElement([50000, 80000, 100000, 150000, 200000, 300000]) : null,
-                    'payment_method' => $status->hasPayment() ? fake()->randomElement(PaymentMethod::cases()) : null,
+                    'total_amount' => $status->hasTotal() ? $total = fake()->randomElement([150000, 200000, 300000, 400000]) : null,
                     'extra_mattresses' => 0,
                     'is_movable' => fake()->boolean(60),
                     'notes' => fake()->optional(0.2)->randomElement(['Puede ser sin balcón', 'Llegan tarde', 'Reserva familiar', 'Es cliente']),
                 ]);
 
-                // Most past payments are already invoiced; recent ones less so.
-                if ($status->hasPayment() && fake()->boolean($checkOut->isPast() ? 70 : 30)) {
-                    $reservation->forceFill(['invoiced_at' => now(), 'invoiced_by_id' => $employees->random()->id])->saveQuietly();
+                // Señada: a deposit by transfer. Pagada: sometimes the deposit by
+                // transfer and the rest in cash. Most past payments are invoiced.
+                $amounts = match ($status) {
+                    PaymentStatus::Deposit => [(int) ($total * fake()->randomElement([0.3, 0.5]))],
+                    PaymentStatus::Paid => fake()->boolean(40) ? [80000, 120000] : [fake()->randomElement([100000, 150000, 200000, 300000])],
+                    default => [],
+                };
+
+                foreach ($amounts as $i => $amount) {
+                    $payment = $reservation->payments()->create([
+                        'amount' => $amount,
+                        'method' => count($amounts) > 1 ? [PaymentMethod::Transfer, PaymentMethod::Cash][$i] : fake()->randomElement(PaymentMethod::cases()),
+                    ]);
+
+                    if (fake()->boolean($checkOut->isPast() ? 70 : 30)) {
+                        $payment->forceFill(['invoiced_at' => now(), 'invoiced_by_id' => $employees->random()->id])->save();
+                    }
                 }
 
                 if ($extras->isNotEmpty() && fake()->boolean(30)) {

@@ -19,10 +19,19 @@ enum PaymentStatus: string
     }
 
     /**
-     * Whether an amount and payment method are expected.
+     * Whether payments (amount and method) are expected.
      */
     public function hasPayment(): bool
     {
         return $this !== self::Pending;
+    }
+
+    /**
+     * Only a señada reservation keeps the total agreed: paid, the total is
+     * what was received; reserved, nothing was agreed in money yet.
+     */
+    public function hasTotal(): bool
+    {
+        return $this === self::Deposit;
     }
 }

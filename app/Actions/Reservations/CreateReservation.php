@@ -6,6 +6,7 @@ use App\Actions\Reservations\Concerns\ValidatesReservations;
 use App\Domain\StayRange;
 use App\Models\Guest;
 use App\Models\Reservation;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -23,23 +24,26 @@ class CreateReservation
 
     /**
      * @param  array<string, mixed>  $input
+     * @param  User|null  $by  who loads it: recorded when a payment is marked as invoiced
      */
-    public function __invoke(array $input): Reservation
+    public function __invoke(array $input, ?User $by = null): Reservation
     {
         $data = $this->validateReservation($input);
+        $by ??= auth()->user();
 
-        return $this->guardingOverlap(fn () => DB::transaction(function () use ($data) {
+        return $this->guardingOverlap(fn () => DB::transaction(function () use ($data, $by) {
             $stay = StayRange::make($data['check_in_date'], $data['check_out_date'], $data['early_check_in'], $data['late_check_out']);
             $this->ensureApartmentCanTake($data['apartment_id'], $stay);
 
             $guestId = $data['guest_id'] ?? Guest::create($data['guest'])->id;
 
             $reservation = Reservation::create([
-                ...collect($data)->except(['guest', 'guest_id', 'extra_ids'])->all(),
+                ...collect($data)->except(['guest', 'guest_id', 'extra_ids', 'payments'])->all(),
                 'guest_id' => $guestId,
             ]);
 
             $reservation->extras()->sync($data['extra_ids']);
+            $this->syncPayments($reservation, $data['payments'], $by);
 
             return $reservation;
         }));

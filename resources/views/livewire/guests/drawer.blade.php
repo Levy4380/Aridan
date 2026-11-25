@@ -60,7 +60,7 @@
                                 </p>
                                 <p class="text-[13px] text-subtle">
                                     {{ Format::date($reservation->check_in_date) }} al {{ Format::date($reservation->check_out_date, true) }}
-                                    · {{ trim($reservation->payment_status->label().' '.($reservation->payment_status->hasPayment() ? Format::money($reservation->amount) : '')) }}
+                                    · {{ trim($reservation->payment_status->label().' '.($reservation->payment_status->hasPayment() ? Format::money($reservation->paidAmount()) : '')) }}
                                 </p>
                             </div>
                             <x-reservation-timing :timing="$reservation->timing()" />

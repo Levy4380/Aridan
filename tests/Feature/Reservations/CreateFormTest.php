@@ -55,14 +55,16 @@ test('an existing guest is found and the reservation saved, landing on the calen
         ->set('guestSearch', '011 15 5555-0142')
         ->assertSee('Elena Romero')
         ->call('selectGuest', $this->guest->id)
-        ->set('amount', '$ 100.000')
-        ->set('payment_method', 'cash')
+        ->set('total_amount', '$ 250.000')
+        ->set('payments.0.amount', '$ 100.000')
+        ->set('payments.0.method', 'cash')
         ->call('save')
         ->assertHasNoErrors()
         ->assertRedirect(route('calendar', ['desde' => '2026-12-01', 'resaltar' => Reservation::sole()->id]));
 
     expect(Reservation::sole())
-        ->amount->toBe('100000.00')
+        ->total_amount->toBe('250000.00')
+        ->paidAmount()->toBe(100000.0)
         ->guest_id->toBe($this->guest->id)
         ->employee_id->toBe($this->me->id);
 });
@@ -140,4 +142,71 @@ test('if someone else booked it meanwhile the overlap is shown in the modal', fu
     })->call('save')
         ->assertHasErrors(['reservation'])
         ->assertNoRedirect();
+});
+
+test('the total only shows up when señada, with what is left to collect', function () {
+    $form = openForm()
+        ->call('selectGuest', $this->guest->id)
+        ->assertSee(__('reservations.fields.total_amount'))
+        ->set('total_amount', '200.000')
+        ->set('payments.0.amount', '80.000')
+        ->assertSee(__('reservations.create.balance_summary', ['paid' => '$80.000', 'total' => '$200.000']))
+        ->assertSee(__('reservations.create.balance', ['amount' => '$120.000']));
+
+    $form->set('payment_status', 'paid')->assertDontSee(__('reservations.fields.total_amount'));
+    $form->set('payment_status', 'pending')->assertSee(__('reservations.create.no_payment_help'));
+});
+
+test('a señada reservation without total is warned, not blocked', function () {
+    $form = openForm()
+        ->call('selectGuest', $this->guest->id)
+        ->set('payments.0.amount', '80.000')
+        ->set('payments.0.method', 'transfer')
+        ->call('save')
+        ->assertNoRedirect()
+        ->assertSee(__('warnings.missing_total'));
+
+    $form->call('save')->assertRedirect();
+
+    expect(Reservation::sole()->total_amount)->toBeNull();
+});
+
+test('the deposit by transfer and the rest in cash are two payments, each with its "Facturado"', function () {
+    openForm()
+        ->call('selectGuest', $this->guest->id)
+        ->set('payment_status', 'paid')
+        ->set('payments.0.amount', '80.000')
+        ->set('payments.0.method', 'transfer')
+        ->set('payments.0.is_invoiced', true)
+        ->call('addPayment')
+        ->assertSee(__('reservations.create.payment_n', ['n' => 2]))
+        ->set('payments.1.amount', '120.000')
+        ->set('payments.1.method', 'cash')
+        ->assertSee(__('reservations.create.paid_summary', ['paid' => '$200.000']))
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertRedirect();
+
+    $payments = Reservation::sole()->payments;
+
+    expect($payments->pluck('amount')->all())->toBe(['80000.00', '120000.00'])
+        ->and($payments->map->isInvoiced()->all())->toBe([true, false])
+        ->and($payments[0]->invoiced_by_id)->toBe($this->me->id);
+});
+
+test('an empty extra payment row is left out and a row can be removed', function () {
+    $form = openForm()
+        ->call('selectGuest', $this->guest->id)
+        ->set('payment_status', 'paid')
+        ->set('payments.0.amount', '200.000')
+        ->set('payments.0.method', 'cash')
+        ->call('addPayment')
+        ->call('addPayment');
+
+    $form->call('removePayment', $form->get('payments.2.key'))
+        ->assertCount('payments', 2)
+        ->call('save')
+        ->assertRedirect();
+
+    expect(Reservation::sole()->payments)->toHaveCount(1);
 });

@@ -14,6 +14,10 @@ final readonly class Warning
 
     public const MISSING_AMOUNT = 'missing_amount';
 
+    public const MISSING_TOTAL = 'missing_total';
+
+    public const DEPOSIT_COVERS_TOTAL = 'deposit_covers_total';
+
     public const SIMILAR_GUEST_NAME = 'similar_guest_name';
 
     public const COLOR_IN_USE = 'color_in_use';

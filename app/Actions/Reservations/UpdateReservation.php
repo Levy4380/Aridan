@@ -6,6 +6,7 @@ use App\Actions\Reservations\Concerns\ValidatesReservations;
 use App\Domain\StayRange;
 use App\Models\Guest;
 use App\Models\Reservation;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -20,16 +21,19 @@ class UpdateReservation
 
     /**
      * @param  array<string, mixed>  $input  the full reservation payload (as for CreateReservation)
+     * @param  User|null  $by  who edits it: recorded when a payment is marked as invoiced
      */
-    public function __invoke(Reservation $reservation, array $input): Reservation
+    public function __invoke(Reservation $reservation, array $input, ?User $by = null): Reservation
     {
+        $by ??= auth()->user();
+
         if ($reservation->trashed()) {
             throw ValidationException::withMessages(['reservation' => __('reservations.errors.cancelled')]);
         }
 
         $data = $this->validateReservation($input, $reservation);
 
-        return $this->guardingOverlap(fn () => DB::transaction(function () use ($reservation, $data) {
+        return $this->guardingOverlap(fn () => DB::transaction(function () use ($reservation, $data, $by) {
             $stay = StayRange::make($data['check_in_date'], $data['check_out_date'], $data['early_check_in'], $data['late_check_out']);
             // A reservation already in an apartment deactivated later (e.g. a
             // past one) can still be edited; moving into an inactive one can't.
@@ -38,11 +42,12 @@ class UpdateReservation
             $guestId = $data['guest_id'] ?? Guest::create($data['guest'])->id;
 
             $reservation->update([
-                ...collect($data)->except(['guest', 'guest_id', 'extra_ids'])->all(),
+                ...collect($data)->except(['guest', 'guest_id', 'extra_ids', 'payments'])->all(),
                 'guest_id' => $guestId,
             ]);
 
             $reservation->extras()->sync($data['extra_ids']);
+            $this->syncPayments($reservation, $data['payments'], $by);
 
             return $reservation->refresh();
         }));

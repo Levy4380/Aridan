@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Domain\PaymentMethod;
 use App\Domain\PaymentStatus;
 use App\Domain\StayRange;
 use Carbon\CarbonImmutable;
@@ -14,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -34,10 +34,7 @@ use Illuminate\Support\Carbon;
  * @property int $end_slot
  * @property int $people_count
  * @property PaymentStatus $payment_status
- * @property string|null $amount
- * @property PaymentMethod|null $payment_method
- * @property Carbon|null $invoiced_at
- * @property int|null $invoiced_by_id
+ * @property string|null $total_amount
  * @property int $extra_mattresses
  * @property bool $is_movable
  * @property string|null $notes
@@ -49,7 +46,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'apartment_id', 'guest_id', 'employee_id',
     'check_in_date', 'check_out_date', 'early_check_in', 'late_check_out',
-    'people_count', 'payment_status', 'amount', 'payment_method',
+    'people_count', 'payment_status', 'total_amount',
     'extra_mattresses', 'is_movable', 'notes',
 ])]
 class Reservation extends Model
@@ -68,9 +65,7 @@ class Reservation extends Model
             'end_slot' => 'integer',
             'people_count' => 'integer',
             'payment_status' => PaymentStatus::class,
-            'amount' => 'decimal:2',
-            'payment_method' => PaymentMethod::class,
-            'invoiced_at' => 'datetime',
+            'total_amount' => 'decimal:2',
             'extra_mattresses' => 'integer',
             'is_movable' => 'boolean',
         ];
@@ -97,19 +92,35 @@ class Reservation extends Model
     }
 
     /**
-     * Facturada: whether the money received was invoiced.
+     * The money received, in one or more payments.
+     *
+     * @return HasMany<Payment, $this>
      */
-    public function isInvoiced(): bool
+    public function payments(): HasMany
     {
-        return $this->invoiced_at !== null;
+        return $this->hasMany(Payment::class)->orderBy('id');
     }
 
     /**
-     * @return BelongsTo<User, $this>
+     * Lo cobrado: the sum of the payments, or null when nothing was received.
      */
-    public function invoicedBy(): BelongsTo
+    public function paidAmount(): ?float
     {
-        return $this->belongsTo(User::class, 'invoiced_by_id');
+        $total = $this->payments->sum(fn (Payment $payment) => (float) $payment->amount);
+
+        return $this->payments->isEmpty() ? null : $total;
+    }
+
+    /**
+     * What's left to pay of the total of a señada reservation, when known.
+     */
+    public function balance(): ?float
+    {
+        if ($this->payment_status !== PaymentStatus::Deposit || $this->total_amount === null) {
+            return null;
+        }
+
+        return (float) $this->total_amount - (float) $this->paidAmount();
     }
 
     /**

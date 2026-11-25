@@ -3,6 +3,7 @@
 use App\Actions\Reservations\CancelReservation;
 use App\Actions\Reservations\MoveReservation;
 use App\Actions\Reservations\UpdateReservation;
+use App\Domain\PaymentMethod;
 use App\Models\Apartment;
 use App\Models\Extra;
 use App\Models\Guest;
@@ -21,8 +22,13 @@ function payloadFrom(Reservation $reservation, array $overrides = []): array
         'late_check_out' => $reservation->late_check_out,
         'people_count' => $reservation->people_count,
         'payment_status' => $reservation->payment_status->value,
-        'amount' => $reservation->amount,
-        'payment_method' => $reservation->payment_method?->value,
+        'total_amount' => $reservation->total_amount,
+        'payments' => $reservation->payments->map(fn ($payment) => [
+            'id' => $payment->id,
+            'amount' => $payment->amount,
+            'method' => $payment->method?->value,
+            'is_invoiced' => $payment->isInvoiced(),
+        ])->all(),
         'extra_mattresses' => $reservation->extra_mattresses,
         'is_movable' => $reservation->is_movable,
         'notes' => $reservation->notes,
@@ -44,15 +50,14 @@ describe('update', function () {
 
         app(UpdateReservation::class)($this->reservation, payloadFrom($this->reservation, [
             'payment_status' => 'paid',
-            'amount' => 200000,
-            'payment_method' => 'cash',
+            'payments' => [['amount' => 200000, 'method' => 'cash']],
             'is_movable' => false,
             'notes' => 'Llegan tarde',
             'extra_ids' => [$breakfast->id],
         ]));
 
         expect($this->reservation->fresh())
-            ->amount->toBe('200000.00')
+            ->paidAmount()->toBe(200000.0)
             ->is_movable->toBeFalse()
             ->notes->toBe('Llegan tarde')
             ->and($this->reservation->fresh()->extras->pluck('name')->all())->toBe(['Desayuno']);
@@ -66,6 +71,39 @@ describe('update', function () {
 
         expect(fn () => app(UpdateReservation::class)($this->reservation, payloadFrom($this->reservation, ['check_out_date' => '2026-12-17'])))
             ->toThrow(ValidationException::class);
+    });
+
+    test('payments are kept by id with their invoicing, added and removed', function () {
+        $reservation = Reservation::factory()->for($this->apartment)->between('2026-12-20', '2026-12-22')
+            ->deposit(80000, total: 200000)->withPayment(5000, invoiced: true)->create();
+        [$deposit, $mistake] = $reservation->payments->all();
+        $mistake->update(['amount' => 5000]);
+
+        app(UpdateReservation::class)($reservation, payloadFrom($reservation->fresh(), [
+            'payment_status' => 'paid',
+            'payments' => [
+                ['id' => $deposit->id, 'amount' => 80000, 'method' => 'transfer', 'is_invoiced' => true],
+                ['amount' => 120000, 'method' => 'cash'],
+            ],
+        ]), User::factory()->create());
+
+        $payments = $reservation->fresh()->payments;
+
+        expect($payments)->toHaveCount(2)
+            ->and($payments[0]->id)->toBe($deposit->id)
+            ->and($payments[0]->isInvoiced())->toBeTrue()
+            ->and($payments[1]->amount)->toBe('120000.00')
+            ->and($payments->pluck('id'))->not->toContain($mistake->id);
+    });
+
+    test('changing the dates keeps the payments as they were', function () {
+        $reservation = Reservation::factory()->for($this->apartment)->between('2026-12-20', '2026-12-22')
+            ->paid(80000)->withPayment(120000, PaymentMethod::Cash, invoiced: true)->create();
+        $before = $reservation->payments->map->only(['id', 'amount', 'method', 'invoiced_at'])->all();
+
+        app(UpdateReservation::class)($reservation, payloadFrom($reservation, ['check_out_date' => '2026-12-23']));
+
+        expect($reservation->fresh()->payments->map->only(['id', 'amount', 'method', 'invoiced_at'])->all())->toEqual($before);
     });
 
     test('a deactivated responsible can stay, but a new responsible must be active', function () {
@@ -83,7 +121,7 @@ describe('update', function () {
     test('a past reservation in an apartment deactivated later can still be edited', function () {
         $this->apartment->update(['is_active' => false]);
 
-        app(UpdateReservation::class)($this->reservation, payloadFrom($this->reservation, ['payment_status' => 'paid', 'amount' => 1, 'payment_method' => 'cash']));
+        app(UpdateReservation::class)($this->reservation, payloadFrom($this->reservation, ['payment_status' => 'paid', 'payments' => [['amount' => 1, 'method' => 'cash']]]));
 
         expect($this->reservation->fresh()->payment_status->value)->toBe('paid');
     });

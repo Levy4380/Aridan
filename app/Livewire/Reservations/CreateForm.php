@@ -18,7 +18,7 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
- * "Nueva reserva" modal (arquitectura-frontend.md, 5.4). Opened from the
+ * "Nueva reserva" drawer (arquitectura-frontend.md, 5.4). Opened from the
  * search with the dates, people and flags already fixed; "Cambiar" goes
  * back to the search untouched. Only the minimum fields are required.
  */
@@ -139,8 +139,6 @@ class CreateForm extends Component
 
             throw $e;
         }
-
-        $this->saveInvoiced($reservation);
 
         session()->flash('status', __('reservations.created', [
             'guest' => $reservation->guest->full_name,

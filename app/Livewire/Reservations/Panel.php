@@ -9,6 +9,7 @@ use App\Actions\Reservations\UpdateReservation;
 use App\Domain\Warning;
 use App\Livewire\Concerns\EditsReservationDetails;
 use App\Livewire\Concerns\PicksGuest;
+use App\Models\Payment;
 use App\Models\Reservation;
 use App\Queries\ApartmentSuggestions;
 use App\Queries\Availability\AvailabilitySearch;
@@ -91,7 +92,7 @@ class Panel extends Component
     {
         return $this->reservationId
             ? Reservation::withTrashed()
-                ->with(['apartment', 'guest' => fn ($query) => $query->withCount('reservations'), 'employee', 'extras', 'cancelledBy', 'invoicedBy'])
+                ->with(['apartment', 'guest' => fn ($query) => $query->withCount('reservations'), 'employee', 'extras', 'cancelledBy', 'payments.invoicedBy'])
                 ->find($this->reservationId)
             : null;
     }
@@ -149,7 +150,7 @@ class Panel extends Component
             return;
         }
 
-        $updated = $updateReservation($reservation, [
+        $updateReservation($reservation, [
             'apartment_id' => $reservation->apartment_id,
             'check_in_date' => $reservation->check_in_date->toDateString(),
             'check_out_date' => $reservation->check_out_date->toDateString(),
@@ -160,26 +161,24 @@ class Panel extends Component
             ...$this->guestPayload(),
         ]);
 
-        $this->saveInvoiced($updated);
-
         $this->afterChange(__('reservations.panel.updated'));
     }
 
     /**
-     * "Facturada" can always be changed from the detail, even on a
-     * cancelled reservation.
+     * "Facturado" can always be changed from the detail, payment by payment,
+     * even on a cancelled reservation.
      */
-    public function toggleInvoiced(SetInvoiced $setInvoiced): void
+    public function toggleInvoiced(int $paymentId, SetInvoiced $setInvoiced): void
     {
-        $reservation = $this->reservation;
+        $payment = $this->reservation?->payments->first(fn (Payment $payment) => $payment->id === $paymentId);
 
-        if (! $reservation) {
+        if (! $payment) {
             return;
         }
 
-        $setInvoiced($reservation, ! $reservation->isInvoiced(), auth()->user());
+        $payment = $setInvoiced($payment, ! $payment->isInvoiced(), auth()->user());
 
-        $this->afterChange($reservation->fresh()->isInvoiced() ? __('reservations.invoicing.marked') : __('reservations.invoicing.unmarked'));
+        $this->afterChange($payment->isInvoiced() ? __('reservations.invoicing.marked') : __('reservations.invoicing.unmarked'));
     }
 
     /*

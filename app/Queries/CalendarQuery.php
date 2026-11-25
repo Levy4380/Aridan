@@ -43,7 +43,7 @@ class CalendarQuery
 
         $reservations = Reservation::query()
             ->overlappingSlots($windowStart, $windowEnd)
-            ->with(['guest', 'employee', 'extras', 'apartment'])
+            ->with(['guest', 'employee', 'extras', 'apartment', 'payments'])
             ->orderBy('start_slot')
             ->get();
 
@@ -114,7 +114,7 @@ class CalendarQuery
         $peopleLine = Format::people($reservation->people_count)
             .($missing > 0 ? " (+{$missing})" : '')
             .' · '.$reservation->payment_status->label()
-            .($reservation->payment_status->hasPayment() && $reservation->amount !== null ? ' '.Format::money($reservation->amount) : '');
+            .($reservation->payment_status->hasPayment() && $reservation->paidAmount() !== null ? ' '.Format::money($reservation->paidAmount()) : '');
 
         $employee = $reservation->employee;
 

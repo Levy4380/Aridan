@@ -2,17 +2,19 @@
 
 namespace App\Livewire\Concerns;
 
-use App\Actions\Reservations\SetInvoiced;
+use App\Domain\PaymentLine;
 use App\Domain\PaymentMethod;
 use App\Domain\PaymentStatus;
 use App\Domain\ReservationWarnings;
 use App\Domain\Warning;
 use App\Models\Apartment;
 use App\Models\Extra;
+use App\Models\Payment;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Support\Format;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 
 /**
@@ -28,12 +30,16 @@ trait EditsReservationDetails
 
     public string $payment_status = 'deposit';
 
-    public ?string $payment_method = null;
+    /** Total de la reserva: only when señada. */
+    public string $total_amount = '';
 
-    public string $amount = '';
-
-    /** Facturada. Saved through SetInvoiced, not through the reservation payload. */
-    public bool $is_invoiced = false;
+    /**
+     * The payments as typed: id (null when new), amount, method, is_invoiced,
+     * and a key so the rows keep their state when one is removed.
+     *
+     * @var list<array{key: string, id: int|null, amount: string, method: string|null, is_invoiced: bool}>
+     */
+    public array $payments = [];
 
     public bool $is_movable = true;
 
@@ -51,9 +57,8 @@ trait EditsReservationDetails
     {
         $this->employee_id = auth()->id();
         $this->payment_status = PaymentStatus::Deposit->value;
-        $this->payment_method = null;
-        $this->amount = '';
-        $this->is_invoiced = false;
+        $this->total_amount = '';
+        $this->payments = [$this->blankPayment()];
         $this->is_movable = true;
         $this->extra_ids = [];
         $this->extra_mattresses = 0;
@@ -65,9 +70,14 @@ trait EditsReservationDetails
     {
         $this->employee_id = $reservation->employee_id;
         $this->payment_status = $reservation->payment_status->value;
-        $this->payment_method = $reservation->payment_method?->value;
-        $this->amount = $reservation->amount !== null ? Format::money($reservation->amount) : '';
-        $this->is_invoiced = $reservation->isInvoiced();
+        $this->total_amount = $reservation->total_amount !== null ? Format::money($reservation->total_amount) : '';
+        $this->payments = $reservation->payments->map(fn (Payment $payment) => [
+            'key' => Str::random(8),
+            'id' => $payment->id,
+            'amount' => Format::money($payment->amount),
+            'method' => $payment->method?->value,
+            'is_invoiced' => $payment->isInvoiced(),
+        ])->all() ?: [$this->blankPayment()];
         $this->is_movable = $reservation->is_movable;
         $this->extra_ids = $reservation->extras->pluck('id')->map(fn ($id) => (int) $id)->all();
         $this->extra_mattresses = $reservation->extra_mattresses;
@@ -83,8 +93,18 @@ trait EditsReservationDetails
         return [
             'employee_id' => $this->employee_id,
             'payment_status' => $this->payment_status,
-            'amount' => Format::parseMoney($this->amount),
-            'payment_method' => $this->payment_method ?: null,
+            'total_amount' => Format::parseMoney($this->total_amount),
+            // A row without amount is left out: it was already warned.
+            'payments' => collect($this->payments)
+                ->map(fn (array $row) => [
+                    'id' => $row['id'] ?? null,
+                    'amount' => Format::parseMoney($row['amount']),
+                    'method' => ($row['method'] ?? null) ?: null,
+                    'is_invoiced' => (bool) ($row['is_invoiced'] ?? false),
+                ])
+                ->filter(fn (array $row) => $row['amount'] !== null && $row['amount'] > 0)
+                ->values()
+                ->all(),
             'extra_mattresses' => $this->extra_mattresses,
             'is_movable' => $this->is_movable,
             'notes' => $this->notes,
@@ -93,11 +113,64 @@ trait EditsReservationDetails
     }
 
     /**
-     * Applies the "Facturada" checkbox once the reservation is saved.
+     * @return array{key: string, id: null, amount: string, method: null, is_invoiced: false}
      */
-    protected function saveInvoiced(Reservation $reservation): void
+    private function blankPayment(): array
     {
-        app(SetInvoiced::class)($reservation, $this->is_invoiced, auth()->user());
+        return ['key' => Str::random(8), 'id' => null, 'amount' => '', 'method' => null, 'is_invoiced' => false];
+    }
+
+    public function addPayment(): void
+    {
+        if (count($this->payments) < 20) {
+            $this->payments[] = $this->blankPayment();
+        }
+    }
+
+    public function removePayment(string $key): void
+    {
+        $this->payments = array_values(array_filter($this->payments, fn (array $row) => $row['key'] !== $key));
+
+        if ($this->payments === []) {
+            $this->payments = [$this->blankPayment()];
+        }
+    }
+
+    /**
+     * Señado or pagado always shows at least one row to type the payment in.
+     */
+    public function updatedPaymentStatus(): void
+    {
+        if ($this->payments === []) {
+            $this->payments = [$this->blankPayment()];
+        }
+    }
+
+    /**
+     * @return list<PaymentLine>
+     */
+    protected function paymentLines(): array
+    {
+        return array_map(fn (array $row) => new PaymentLine(
+            Format::parseMoney($row['amount']),
+            PaymentMethod::tryFrom((string) ($row['method'] ?? '')),
+        ), $this->payments);
+    }
+
+    /**
+     * What the payment section shows under the rows: received so far and,
+     * when señada with a total, what's left.
+     *
+     * @return array{paid: float, total: float|null, balance: float|null}
+     */
+    #[Computed]
+    public function paymentSummary(): array
+    {
+        $paid = PaymentLine::sum($this->paymentLines());
+        $total = PaymentStatus::from($this->payment_status)->hasTotal() ? Format::parseMoney($this->total_amount) : null;
+        $total = $total !== null && $total > 0 ? $total : null;
+
+        return ['paid' => $paid, 'total' => $total, 'balance' => $total !== null ? $total - $paid : null];
     }
 
     #[Computed]
@@ -159,8 +232,8 @@ trait EditsReservationDetails
             people: $this->people_count,
             extraMattresses: $this->extra_mattresses,
             paymentStatus: PaymentStatus::from($this->payment_status),
-            amount: Format::parseMoney($this->amount),
-            paymentMethod: PaymentMethod::tryFrom((string) $this->payment_method),
+            payments: $this->paymentLines(),
+            totalAmount: Format::parseMoney($this->total_amount),
             newGuest: ($this->creatingGuest ?? false) ? $this->guest : null,
         );
     }

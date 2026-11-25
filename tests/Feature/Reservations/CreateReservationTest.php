@@ -2,6 +2,8 @@
 
 use App\Actions\Reservations\CreateReservation;
 use App\Domain\GuestLookup;
+use App\Domain\PaymentLine;
+use App\Domain\PaymentMethod;
 use App\Domain\PaymentStatus;
 use App\Domain\ReservationWarnings;
 use App\Domain\Warning;
@@ -29,8 +31,8 @@ function reservationInput(array $overrides = []): array
         'late_check_out' => false,
         'people_count' => 3,
         'payment_status' => 'deposit',
-        'amount' => 100000,
-        'payment_method' => 'transfer',
+        'total_amount' => 250000,
+        'payments' => [['amount' => 100000, 'method' => 'transfer']],
         'extra_mattresses' => 0,
         'is_movable' => true,
         'notes' => '',
@@ -60,7 +62,9 @@ test('a reservation is created for an existing guest, with its extras', function
     expect($reservation->guest->is($this->guest))->toBeTrue()
         ->and($reservation->employee->is($this->employee))->toBeTrue()
         ->and($reservation->payment_status)->toBe(PaymentStatus::Deposit)
-        ->and($reservation->amount)->toBe('100000.00')
+        ->and($reservation->total_amount)->toBe('250000.00')
+        ->and($reservation->paidAmount())->toBe(100000.0)
+        ->and($reservation->balance())->toBe(150000.0)
         ->and($reservation->notes)->toBe('Puede ser sin balcón')
         ->and($reservation->extras->pluck('name')->all())->toBe(['Cochera']);
 });
@@ -137,10 +141,44 @@ test('a new guest can not repeat a phone or a document, however it is written', 
         ->and(Guest::count())->toBe(1);
 });
 
-test('a reservation without payment keeps no amount', function () {
+test('a reservation without payment keeps no payments nor total', function () {
     $reservation = app(CreateReservation::class)(reservationInput(['payment_status' => 'pending']));
 
-    expect($reservation->amount)->toBeNull()->and($reservation->payment_method)->toBeNull();
+    expect($reservation->payments)->toBeEmpty()
+        ->and($reservation->total_amount)->toBeNull()
+        ->and($reservation->paidAmount())->toBeNull();
+});
+
+test('a reservation can be paid in parts with different methods', function () {
+    $reservation = app(CreateReservation::class)(reservationInput([
+        'payment_status' => 'paid',
+        'total_amount' => 999,
+        'payments' => [
+            ['amount' => 80000, 'method' => 'transfer', 'is_invoiced' => true],
+            ['amount' => 120000, 'method' => 'cash'],
+        ],
+    ]), $this->employee);
+
+    [$deposit, $rest] = $reservation->payments->all();
+
+    expect($reservation->paidAmount())->toBe(200000.0)
+        // The total is only kept while señada.
+        ->and($reservation->total_amount)->toBeNull()
+        ->and($deposit->method)->toBe(PaymentMethod::Transfer)
+        ->and($deposit->isInvoiced())->toBeTrue()
+        ->and($deposit->invoiced_by_id)->toBe($this->employee->id)
+        ->and($rest->method)->toBe(PaymentMethod::Cash)
+        ->and($rest->isInvoiced())->toBeFalse();
+});
+
+test('a payment needs a positive amount, and only payments of the same reservation can be kept', function () {
+    expect(errorsOf(fn () => app(CreateReservation::class)(reservationInput(['payments' => [['amount' => 0, 'method' => 'cash']]]))))
+        ->toHaveKey('payments.0.amount');
+
+    $other = Reservation::factory()->deposit()->create();
+
+    expect(errorsOf(fn () => app(CreateReservation::class)(reservationInput(['payments' => [['id' => $other->payments->first()->id, 'amount' => 1]]]))))
+        ->toHaveKey('payments.0.id');
 });
 
 test('more people than capacity is allowed but warned, unless mattresses cover it', function () {
@@ -153,11 +191,33 @@ test('more people than capacity is allowed but warned, unless mattresses cover i
     expect($reservation->people_count)->toBe(5);
 });
 
-test('a paid reservation without amount or method is warned', function () {
+test('a paid reservation without amount or method in any payment is warned', function () {
     $warnings = app(ReservationWarnings::class);
+    $transfer = new PaymentLine(80000, PaymentMethod::Transfer);
 
-    expect($warnings->missingAmount(PaymentStatus::Paid, null, null)?->code)->toBe(Warning::MISSING_AMOUNT)
-        ->and($warnings->missingAmount(PaymentStatus::Pending, null, null))->toBeNull();
+    expect($warnings->missingAmount(PaymentStatus::Paid, [])?->code)->toBe(Warning::MISSING_AMOUNT)
+        ->and($warnings->missingAmount(PaymentStatus::Paid, [new PaymentLine(null, null)])?->code)->toBe(Warning::MISSING_AMOUNT)
+        ->and($warnings->missingAmount(PaymentStatus::Paid, [$transfer, new PaymentLine(120000, null)])?->code)->toBe(Warning::MISSING_AMOUNT)
+        ->and($warnings->missingAmount(PaymentStatus::Paid, [$transfer, new PaymentLine(null, PaymentMethod::Cash)])?->code)->toBe(Warning::MISSING_AMOUNT)
+        ->and($warnings->missingAmount(PaymentStatus::Paid, [$transfer, new PaymentLine(120000, PaymentMethod::Cash)]))->toBeNull()
+        // An empty extra row is ignored.
+        ->and($warnings->missingAmount(PaymentStatus::Deposit, [$transfer, new PaymentLine(null, null)]))->toBeNull()
+        ->and($warnings->missingAmount(PaymentStatus::Pending, []))->toBeNull();
+});
+
+test('a señada reservation without total is warned, and so is one whose payments reach the total', function () {
+    $warnings = app(ReservationWarnings::class);
+    $deposit = [new PaymentLine(80000, PaymentMethod::Transfer)];
+    $all = [...$deposit, new PaymentLine(120000, PaymentMethod::Cash)];
+
+    expect($warnings->missingTotal(PaymentStatus::Deposit, null)?->code)->toBe(Warning::MISSING_TOTAL)
+        ->and($warnings->missingTotal(PaymentStatus::Deposit, 200000))->toBeNull()
+        ->and($warnings->missingTotal(PaymentStatus::Paid, null))->toBeNull()
+        ->and($warnings->depositCoversTotal(PaymentStatus::Deposit, $deposit, 200000))->toBeNull()
+        ->and($warnings->depositCoversTotal(PaymentStatus::Deposit, $all, 200000)?->code)->toBe(Warning::DEPOSIT_COVERS_TOTAL)
+        ->and($warnings->depositCoversTotal(PaymentStatus::Deposit, $all, 150000)?->code)->toBe(Warning::DEPOSIT_COVERS_TOTAL)
+        // Pagado is chosen by hand: nothing to warn.
+        ->and($warnings->depositCoversTotal(PaymentStatus::Paid, $all, null))->toBeNull();
 });
 
 test('a new guest with the name of another guest is warned', function () {

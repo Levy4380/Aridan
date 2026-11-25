@@ -52,7 +52,7 @@ test('new dates are applied after a short confirmation, keeping everything else'
         ->check_out_date->toDateString()->toBe('2026-12-14')
         ->apartment_id->toBe($this->a205->id)
         ->notes->toBe('Llegan tarde')
-        ->amount->toBe('100000.00')
+        ->paidAmount()->toBe(100000.0)
         ->and($this->reservation->fresh()->extras->pluck('name')->all())->toBe(['Cochera']);
 });
 

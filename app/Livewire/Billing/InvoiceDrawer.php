@@ -3,7 +3,7 @@
 namespace App\Livewire\Billing;
 
 use App\Actions\Reservations\SetInvoiced;
-use App\Models\Reservation;
+use App\Models\Payment;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Computed;
@@ -11,36 +11,36 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
- * What's needed to issue the invoice of a reservation: amount received,
- * the guest's CUIT/DNI and name, and the "Facturada" button. Mounted in the
- * app layout and opened with `open-invoice`.
+ * What's needed to invoice a payment: its amount, the guest's CUIT/DNI and
+ * name, and the "Facturado" button. Mounted in the app layout and opened
+ * with `open-invoice` (a payment id).
  */
 class InvoiceDrawer extends Component
 {
-    public ?int $reservationId = null;
+    public ?int $paymentId = null;
 
     public bool $show = false;
 
     #[On('open-invoice')]
     public function open(int $id): void
     {
-        $this->reservationId = $id;
-        unset($this->reservation);
-        $this->show = $this->reservation !== null;
+        $this->paymentId = $id;
+        unset($this->payment);
+        $this->show = $this->payment !== null;
     }
 
     public function updatedShow(bool $show): void
     {
         if (! $show) {
-            $this->reservationId = null;
+            $this->paymentId = null;
         }
     }
 
     #[Computed]
-    public function reservation(): ?Reservation
+    public function payment(): ?Payment
     {
-        return $this->reservationId
-            ? Reservation::withTrashed()->with(['guest', 'apartment', 'invoicedBy'])->find($this->reservationId)
+        return $this->paymentId
+            ? Payment::with(['reservation.guest', 'reservation.apartment', 'reservation.payments', 'invoicedBy'])->find($this->paymentId)
             : null;
     }
 
@@ -49,24 +49,24 @@ class InvoiceDrawer extends Component
     #[On('reservation-changed')]
     public function refresh(): void
     {
-        unset($this->reservation);
+        unset($this->payment);
     }
 
     public function markInvoiced(SetInvoiced $setInvoiced): void
     {
-        $reservation = $this->reservation;
+        $payment = $this->payment;
 
-        if (! $reservation) {
+        if (! $payment) {
             return;
         }
 
-        $setInvoiced($reservation, true, auth()->user());
+        $setInvoiced($payment, true, auth()->user());
 
         $this->show = false;
-        $this->reservationId = null;
+        $this->paymentId = null;
         $this->dispatch('reservation-changed');
 
-        Flux::toast(variant: 'success', text: __('billing.marked', ['guest' => $reservation->guest->full_name]));
+        Flux::toast(variant: 'success', text: __('billing.marked', ['guest' => $payment->reservation->guest->full_name]));
     }
 
     public function render(): View

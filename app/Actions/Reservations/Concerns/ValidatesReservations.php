@@ -8,6 +8,7 @@ use App\Domain\PaymentStatus;
 use App\Domain\StayRange;
 use App\Models\Apartment;
 use App\Models\Guest;
+use App\Models\Payment;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Support\Format;
@@ -49,8 +50,17 @@ trait ValidatesReservations
             'late_check_out' => ['boolean'],
             'people_count' => ['required', 'integer', 'min:1', 'max:30'],
             'payment_status' => ['required', Rule::enum(PaymentStatus::class)],
-            'amount' => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
-            'payment_method' => ['nullable', Rule::enum(PaymentMethod::class)],
+            'total_amount' => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
+            'payments' => ['array', 'max:20'],
+            'payments.*.id' => ['nullable', 'integer', function (string $attribute, mixed $value, Closure $fail) use ($existing) {
+                // Only payments of this same reservation can be kept.
+                if (! $existing || ! $existing->payments()->whereKey($value)->exists()) {
+                    $fail(__('reservations.errors.payment_unknown'));
+                }
+            }],
+            'payments.*.amount' => ['required', 'numeric', 'gt:0', 'max:9999999999'],
+            'payments.*.method' => ['nullable', Rule::enum(PaymentMethod::class)],
+            'payments.*.is_invoiced' => ['boolean'],
             'extra_mattresses' => ['integer', 'min:0', 'max:10'],
             'is_movable' => ['boolean'],
             'notes' => ['nullable', 'string', 'max:2000'],
@@ -66,6 +76,9 @@ trait ValidatesReservations
             'guest.last_name' => __('reservations.fields.last_name'),
             'guest.phone' => __('reservations.fields.phone'),
             'people_count' => __('reservations.fields.people'),
+            'total_amount' => __('reservations.fields.total_amount'),
+            'payments.*.amount' => __('reservations.fields.amount'),
+            'payments.*.method' => __('reservations.fields.payment_method'),
         ])->validate();
 
         if ($newGuest) {
@@ -82,9 +95,14 @@ trait ValidatesReservations
             'is_movable' => (bool) ($data['is_movable'] ?? true),
             'notes' => filled($data['notes'] ?? null) ? trim($data['notes']) : null,
             'extra_ids' => $data['extra_ids'] ?? [],
-            // The amount and method only make sense once something was paid.
-            'amount' => $status->hasPayment() ? ($data['amount'] ?? null) : null,
-            'payment_method' => $status->hasPayment() ? ($data['payment_method'] ?? null) : null,
+            // Payments only once something was paid; the total only when señada.
+            'total_amount' => $status->hasTotal() ? ($data['total_amount'] ?? null) : null,
+            'payments' => $status->hasPayment() ? array_values(array_map(fn (array $payment) => [
+                'id' => isset($payment['id']) ? (int) $payment['id'] : null,
+                'amount' => $payment['amount'],
+                'method' => $payment['method'] ?? null,
+                'is_invoiced' => (bool) ($payment['is_invoiced'] ?? false),
+            ], $data['payments'] ?? [])) : [],
             'guest_id' => $newGuest ? null : (int) $data['guest_id'],
             'guest' => $newGuest ? [
                 'first_name' => trim($data['guest']['first_name']),
@@ -93,6 +111,36 @@ trait ValidatesReservations
                 'document_number' => $data['guest']['document_number'] ?? null,
             ] : null,
         ];
+    }
+
+    /**
+     * Leaves the reservation with exactly these payments: keeps the ones
+     * with an id (and their invoicing), adds the new ones and deletes the
+     * rest. "Facturado" keeps who marked it and when.
+     *
+     * @param  list<array{id: int|null, amount: mixed, method: string|null, is_invoiced: bool}>  $rows
+     */
+    protected function syncPayments(Reservation $reservation, array $rows, ?User $by): void
+    {
+        $existing = $reservation->payments()->get()->keyBy('id');
+        $kept = [];
+
+        foreach ($rows as $row) {
+            /** @var Payment $payment */
+            $payment = ($row['id'] ? $existing->get($row['id']) : null) ?? $reservation->payments()->make();
+            $payment->fill(['amount' => $row['amount'], 'method' => $row['method']]);
+
+            if ($row['is_invoiced'] !== $payment->isInvoiced()) {
+                $payment->invoiced_at = $row['is_invoiced'] ? now() : null;
+                $payment->invoiced_by_id = $row['is_invoiced'] ? $by?->id : null;
+            }
+
+            $payment->save();
+            $kept[] = $payment->id;
+        }
+
+        $reservation->payments()->whereKeyNot($kept)->delete();
+        $reservation->unsetRelation('payments');
     }
 
     /**

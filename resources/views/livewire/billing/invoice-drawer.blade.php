@@ -1,12 +1,13 @@
 @php
     use App\Support\Format;
 
-    $reservation = $this->reservation;
+    $payment = $this->payment;
+    $reservation = $payment?->reservation;
 @endphp
 
 <div>
     <flux:modal variant="flyout" wire:model.self.live="show" class="w-full max-md:max-w-none max-md:p-5 md:w-[480px]" data-test="invoice-drawer">
-        @if ($reservation)
+        @if ($payment)
             <div class="flex flex-col gap-5">
                 <div class="pe-8">
                     <x-section-title>{{ __('billing.drawer.title') }}</x-section-title>
@@ -18,11 +19,11 @@
 
                 <div class="grid grid-cols-2 gap-2">
                     <x-stat-tile :label="__('billing.drawer.amount')" class="col-span-2">
-                        <span class="text-[26px]" data-test="invoice-amount">{{ $reservation->amount !== null ? Format::money($reservation->amount) : '—' }}</span>
+                        <span class="text-[26px]" data-test="invoice-amount">{{ Format::money($payment->amount) }}</span>
                         <span class="mt-1 flex flex-wrap gap-1">
                             <x-payment-badge :status="$reservation->payment_status" />
-                            @if ($reservation->payment_method)
-                                <span class="inline-flex rounded-[3px] bg-chip px-2 py-0.5 text-xs font-bold text-subtle">{{ $reservation->payment_method->label() }}</span>
+                            @if ($payment->method)
+                                <span class="inline-flex rounded-[3px] bg-chip px-2 py-0.5 text-xs font-bold text-subtle">{{ $payment->method->label() }}</span>
                             @else
                                 <span class="inline-flex rounded-[3px] bg-warning-bg px-2 py-0.5 text-xs font-bold text-warning-badge">{{ __('billing.no_method') }}</span>
                             @endif
@@ -30,6 +31,14 @@
                                 <x-reservation-timing timing="cancelled" />
                             @endif
                         </span>
+                        @if ($reservation->payments->count() > 1)
+                            <span class="mt-1 block text-[13px] font-medium text-subtle" data-test="other-payments">
+                                {{ trans_choice('billing.drawer.other_payments', $reservation->payments->count() - 1, [
+                                    'count' => $reservation->payments->count() - 1,
+                                    'total' => Format::money($reservation->paidAmount()),
+                                ]) }}
+                            </span>
+                        @endif
                     </x-stat-tile>
                     <x-stat-tile :label="__('billing.drawer.document')">
                         @if ($reservation->guest->document_number)
@@ -50,15 +59,15 @@
                     </flux:callout>
                 @endunless
 
-                @if ($reservation->isInvoiced())
+                @if ($payment->isInvoiced())
                     <flux:callout variant="success" icon="check-circle">
-                        <flux:callout.text>{{ __('reservations.invoicing.by', ['name' => $reservation->invoicedBy?->name ?? '—', 'date' => Format::date($reservation->invoiced_at, true)]) }}</flux:callout.text>
+                        <flux:callout.text>{{ __('reservations.invoicing.by', ['name' => $payment->invoicedBy?->name ?? '—', 'date' => Format::date($payment->invoiced_at, true)]) }}</flux:callout.text>
                     </flux:callout>
                 @endif
 
                 <div class="flex flex-wrap items-center justify-between gap-2 border-t border-divider pt-4">
                     <flux:button variant="ghost" wire:click="$dispatch('open-reservation', { id: {{ $reservation->id }} })">{{ __('billing.drawer.view_reservation') }}</flux:button>
-                    @unless ($reservation->isInvoiced())
+                    @unless ($payment->isInvoiced())
                         <flux:button variant="primary" icon="check" wire:click="markInvoiced" data-test="mark-invoiced">{{ __('billing.drawer.mark') }}</flux:button>
                     @endunless
                 </div>

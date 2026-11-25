@@ -13,6 +13,7 @@ use App\Support\Format;
 class ReservationWarnings
 {
     /**
+     * @param  list<PaymentLine>  $payments
      * @param  array{first_name?: string, last_name?: string, phone?: string}|null  $newGuest  only when a guest is being created
      * @return list<Warning>
      */
@@ -21,13 +22,15 @@ class ReservationWarnings
         int $people,
         int $extraMattresses,
         PaymentStatus $paymentStatus,
-        int|float|string|null $amount,
-        ?PaymentMethod $paymentMethod,
+        array $payments,
+        ?float $totalAmount,
         ?array $newGuest = null,
     ): array {
         return array_values(array_filter([
             $this->capacity($apartment, $people, $extraMattresses),
-            $this->missingAmount($paymentStatus, $amount, $paymentMethod),
+            $this->missingAmount($paymentStatus, $payments),
+            $this->missingTotal($paymentStatus, $totalAmount),
+            $this->depositCoversTotal($paymentStatus, $payments, $totalAmount),
             $newGuest ? $this->similarGuestName($newGuest) : null,
         ]));
     }
@@ -48,13 +51,59 @@ class ReservationWarnings
         ]));
     }
 
-    public function missingAmount(PaymentStatus $status, int|float|string|null $amount, ?PaymentMethod $method): ?Warning
+    /**
+     * Señada or pagada, but no money loaded, or a payment without its
+     * amount or its method.
+     *
+     * @param  list<PaymentLine>  $payments
+     */
+    public function missingAmount(PaymentStatus $status, array $payments): ?Warning
     {
-        if (! $status->hasPayment() || (filled($amount) && (float) $amount > 0 && $method !== null)) {
+        if (! $status->hasPayment()) {
+            return null;
+        }
+
+        $received = array_filter($payments, fn (PaymentLine $line) => $line->hasAmount());
+        $incomplete = array_filter($payments, fn (PaymentLine $line) => $line->hasAmount() !== ($line->method !== null));
+
+        if ($received !== [] && $incomplete === []) {
             return null;
         }
 
         return new Warning(Warning::MISSING_AMOUNT, __('warnings.missing_amount', ['status' => $status->label()]));
+    }
+
+    /**
+     * Señada without the total of the reservation: then nobody knows how
+     * much is left to collect.
+     */
+    public function missingTotal(PaymentStatus $status, ?float $totalAmount): ?Warning
+    {
+        if (! $status->hasTotal() || ($totalAmount !== null && $totalAmount > 0)) {
+            return null;
+        }
+
+        return new Warning(Warning::MISSING_TOTAL, __('warnings.missing_total'));
+    }
+
+    /**
+     * Señada, but what was received already reaches the total. The status
+     * is never changed on its own: the employee decides.
+     *
+     * @param  list<PaymentLine>  $payments
+     */
+    public function depositCoversTotal(PaymentStatus $status, array $payments, ?float $totalAmount): ?Warning
+    {
+        $paid = PaymentLine::sum($payments);
+
+        if (! $status->hasTotal() || $totalAmount === null || $totalAmount <= 0 || $paid < $totalAmount) {
+            return null;
+        }
+
+        return new Warning(Warning::DEPOSIT_COVERS_TOTAL, __('warnings.deposit_covers_total', [
+            'paid' => Format::money($paid),
+            'total' => Format::money($totalAmount),
+        ]));
     }
 
     /**

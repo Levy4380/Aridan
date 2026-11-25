@@ -8,6 +8,7 @@ use App\Domain\StayRange;
 use App\Domain\Warning;
 use App\Models\Apartment;
 use App\Models\Guest;
+use App\Models\Payment;
 use App\Models\Reservation;
 use App\Queries\ApartmentSuggestions;
 use App\Queries\Availability\AvailabilitySearch;
@@ -155,8 +156,13 @@ class Search extends Component
             'late_check_out' => $stay->lateCheckOut,
             'people_count' => $people,
             'payment_status' => $reservation->payment_status->value,
-            'amount' => $reservation->amount,
-            'payment_method' => $reservation->payment_method?->value,
+            'total_amount' => $reservation->total_amount,
+            'payments' => $reservation->payments->map(fn (Payment $payment) => [
+                'id' => $payment->id,
+                'amount' => $payment->amount,
+                'method' => $payment->method?->value,
+                'is_invoiced' => $payment->isInvoiced(),
+            ])->all(),
             'extra_mattresses' => $reservation->extra_mattresses,
             'is_movable' => $reservation->is_movable,
             'notes' => $reservation->notes,

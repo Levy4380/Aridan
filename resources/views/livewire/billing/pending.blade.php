@@ -2,7 +2,7 @@
     use App\Support\Format;
 
     $stretch = "after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent";
-    $total = $this->reservations->sum(fn ($reservation) => (float) $reservation->amount);
+    $total = $this->payments->sum(fn ($payment) => (float) $payment->amount);
 @endphp
 
 <div class="flex flex-col gap-4">
@@ -11,7 +11,7 @@
     <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
         <flux:checkbox wire:model.live="includeCash" :label="__('billing.include_cash')" data-test="include-cash" />
         <p class="text-[13px] text-subtle" role="status">
-            {{ trans_choice('billing.summary', $this->reservations->count(), ['count' => $this->reservations->count(), 'total' => Format::money($total)]) }}
+            {{ trans_choice('billing.summary', $this->payments->count(), ['count' => $this->payments->count(), 'total' => Format::money($total)]) }}
         </p>
     </div>
 
@@ -28,13 +28,14 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse ($this->reservations as $reservation)
+                @forelse ($this->payments as $payment)
+                    @php($reservation = $payment->reservation)
                     @php($cancelled = $reservation->trashed())
-                    <tr wire:key="pending-{{ $reservation->id }}" class="relative cursor-pointer border-b border-divider-soft last:border-0 hover:bg-accent-softer">
+                    <tr wire:key="pending-{{ $payment->id }}" class="relative cursor-pointer border-b border-divider-soft last:border-0 hover:bg-accent-softer">
                         <td class="px-4 py-2">
                             <button
                                 type="button"
-                                wire:click="$dispatch('open-invoice', { id: {{ $reservation->id }} })"
+                                wire:click="$dispatch('open-invoice', { id: {{ $payment->id }} })"
                                 class="font-semibold text-ink {{ $stretch }}"
                                 aria-label="{{ __('billing.open_label', ['guest' => $reservation->guest->full_name]) }}"
                             >{{ $reservation->guest->full_name }}</button>
@@ -54,13 +55,13 @@
                             </span>
                         </td>
                         <td data-label="{{ __('billing.columns.method') }}" class="px-4 py-2 text-ink-2">
-                            @if ($reservation->payment_method)
-                                {{ $reservation->payment_method->label() }}
+                            @if ($payment->method)
+                                {{ $payment->method->label() }}
                             @else
                                 <span class="inline-flex rounded-[3px] bg-warning-bg px-2 py-0.5 text-xs font-bold text-warning-badge">{{ __('billing.no_method') }}</span>
                             @endif
                         </td>
-                        <td data-label="{{ __('billing.columns.amount') }}" class="px-4 py-2 text-right font-semibold text-ink">{{ $reservation->amount !== null ? Format::money($reservation->amount) : '—' }}</td>
+                        <td data-label="{{ __('billing.columns.amount') }}" class="px-4 py-2 text-right font-semibold text-ink">{{ Format::money($payment->amount) }}</td>
                     </tr>
                 @empty
                     <tr>

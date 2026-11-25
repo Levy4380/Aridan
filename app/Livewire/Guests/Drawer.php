@@ -101,7 +101,7 @@ class Drawer extends Component
         return $this->guestId
             ? Reservation::withTrashed()
                 ->where('guest_id', $this->guestId)
-                ->with(['apartment', 'employee'])
+                ->with(['apartment', 'employee', 'payments'])
                 ->orderByDesc('check_in_date')
                 ->get()
             : new Collection;

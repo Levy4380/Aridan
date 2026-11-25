@@ -2,27 +2,27 @@
 
 namespace App\Actions\Reservations;
 
-use App\Models\Reservation;
+use App\Models\Payment;
 use App\Models\User;
 
 /**
- * Marks a reservation as invoiced (facturada) or not. It can always be
- * changed: whatever the payment status, and also on cancelled reservations
- * (the money was received anyway). Keeps who and when, for control.
+ * Marks a payment as invoiced (facturado) or not. It can always be changed:
+ * whatever the payment status, and also on cancelled reservations (the
+ * money was received anyway). Keeps who and when, for control.
  */
 class SetInvoiced
 {
-    public function __invoke(Reservation $reservation, bool $invoiced, User $by): Reservation
+    public function __invoke(Payment $payment, bool $invoiced, User $by): Payment
     {
-        if ($invoiced === $reservation->isInvoiced()) {
-            return $reservation;
+        if ($invoiced === $payment->isInvoiced()) {
+            return $payment;
         }
 
-        $reservation->forceFill([
+        $payment->forceFill([
             'invoiced_at' => $invoiced ? now() : null,
             'invoiced_by_id' => $invoiced ? $by->id : null,
-        ])->saveQuietly();
+        ])->save();
 
-        return $reservation->refresh();
+        return $payment->refresh();
     }
 }
