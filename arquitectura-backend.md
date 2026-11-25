@@ -73,7 +73,7 @@ PostgreSQL (serverless en Laravel Cloud)
   - Un índice `unique` sobre una columna nullable admite varios `NULL`, tanto en Postgres como en MySQL. Así, muchos clientes pueden no tener documento.
 - **Normalización:** para que la unicidad funcione, los dos campos se normalizan en el modelo con mutators, antes de guardar y antes de buscar. Si no, "11 1234-5678" y "+5491112345678" serían dos clientes distintos.
   - `document_number`: solo dígitos, sin puntos ni guiones.
-  - `phone`: solo dígitos, con un formato canónico (ej. `5491112345678`). La regla exacta para Argentina (prefijo 54, el 9 de celular, el 15) se define al implementar, en una clase `PhoneNormalizer`.
+  - `phone`: formato canónico `549` + los 10 dígitos nacionales (código de área + número, sin el 0 ni el 15), en `App\Domain\PhoneNormalizer`. Así "11 15 5555-0142", "011 5555-0142" y "+54 9 11 5555-0142" son el mismo cliente. Lo que no parece un número argentino se guarda solo con dígitos. En pantalla se muestra legible ("11 5555-0142") con `Format::phone`.
 
 ### `reservations` (reservas)
 | Columna | Tipo | Notas |

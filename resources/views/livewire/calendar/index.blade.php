@@ -3,6 +3,12 @@
 @endphp
 
 <div class="flex flex-col gap-3" style="--day-w: {{ $range === \App\Livewire\Calendar\Index::RANGE_TWO_WEEKS ? '88px' : '40px' }}">
+    @if (session('status'))
+        <flux:callout variant="success" icon="check-circle" role="status" data-test="status-message">
+            <flux:callout.text>{{ session('status') }}</flux:callout.text>
+        </flux:callout>
+    @endif
+
     {{-- Toolbar --}}
     <div class="flex flex-wrap items-center gap-3">
         <div class="flex items-center gap-1">
@@ -107,6 +113,7 @@
                     @foreach ($row->blocks as $block)
                         <x-reservation-block
                             :block="$block"
+                            :highlighted="$block->reservationId === $highlight"
                             wire:key="block-{{ $block->reservationId }}"
                             style="grid-row: 1; grid-column: {{ $block->startColumn + 1 }} / {{ $block->endColumn + 1 }};"
                         />

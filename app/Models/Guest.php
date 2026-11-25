@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\PhoneNormalizer;
 use Database\Factories\GuestFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -30,13 +31,11 @@ class Guest extends Model
     use HasFactory;
 
     /**
-     * Digits only. The exact Argentine phone rule (54, the mobile 9, the 15)
-     * is still pending (CLAUDE.md, "Decisiones pendientes"): it will live in
-     * App\Domain\PhoneNormalizer when the guests screen is built.
+     * Stored in canonical form (see PhoneNormalizer) so uniqueness works.
      */
     protected function phone(): Attribute
     {
-        return Attribute::set(fn (?string $value) => self::digits($value));
+        return Attribute::set(fn (?string $value) => PhoneNormalizer::normalize($value));
     }
 
     protected function documentNumber(): Attribute
@@ -57,7 +56,7 @@ class Guest extends Model
         return $this->hasMany(Reservation::class);
     }
 
-    private static function digits(?string $value): string
+    public static function digits(?string $value): string
     {
         return preg_replace('/\D+/', '', (string) $value);
     }

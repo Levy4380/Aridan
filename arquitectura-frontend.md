@@ -446,7 +446,7 @@ Se abre al tocar "Reservar". Recibe las fechas, personas, flags y el depto elegi
 
 ### 5.5 Selector de cliente (`Guests\GuestPicker`)
 
-Es un componente Livewire anidado, que usan el modal Nueva reserva y el panel Editar. Implementa el flujo de búsqueda de clientes de arquitectura-backend.md:
+Lo usan el modal Nueva reserva y el panel Editar. **Implementado como trait** (`App\Livewire\Concerns\PicksGuest`) **+ vista parcial** (`livewire/partials/guest-picker`), no como componente anidado: el cliente nuevo se crea junto con la reserva, así que sus datos tienen que viajar en el mismo formulario. Implementa el flujo de búsqueda de clientes de arquitectura-backend.md:
 
 1. Input con lupa **"Buscar por teléfono o DNI/CUIT"** (`wire:model.live.debounce.300ms`). `GuestLookup` normaliza y busca.
 2. **Lo encuentra:** `<x-guest-card>` con "Tel. 11 5555-0142 · DNI 30.123.456 · 2 reservas anteriores" y **Cambiar**, que vuelve a la búsqueda.

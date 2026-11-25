@@ -181,7 +181,6 @@ Livewire (pantallas)  →  Actions (escriben) / Queries (leen)  →  Eloquent + 
 ## Decisiones pendientes
 
 - Verificar que Laravel Cloud soporte `btree_gist`. Si no, se omite la constraint y queda solo el `lockForUpdate`.
-- Regla exacta de normalización de teléfonos argentinos (`PhoneNormalizer`).
 - Las diferencias entre el mockup y la documentación de `arquitectura-frontend.md` (§8).
 
 ## Próximas iteraciones (no implementar todavía)

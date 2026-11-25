@@ -16,7 +16,6 @@ return [
     'none_available' => 'No hay departamentos libres para esas fechas. Revisá los ocupados por reservas movibles, más abajo.',
     'best' => 'Mejor opción',
     'reserve' => 'Reservar',
-    'reserve_soon' => 'La carga de reservas llega en el próximo paso.',
 
     'movable' => 'Ocupados por reservas movibles (:count)',
     'movable_help' => 'Se podrían liberar moviendo esas reservas a otro departamento.',

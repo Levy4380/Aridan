@@ -112,6 +112,16 @@
     background-image: repeating-linear-gradient(135deg, transparent 0 6px, var(--color-track) 6px 7px) !important;
 }
 
+/* Calendar: the block of a reservation just saved blinks for a few seconds. */
+@keyframes reservation-highlight {
+    0%, 100% { box-shadow: 0 0 0 0 transparent; }
+    50% { box-shadow: 0 0 0 3px var(--color-accent); }
+}
+
+.reservation-highlight {
+    animation: reservation-highlight 1s ease-in-out 4;
+}
+
 [data-flux-field]:not(ui-radio, ui-checkbox) {
     @apply grid gap-[5px];
 }

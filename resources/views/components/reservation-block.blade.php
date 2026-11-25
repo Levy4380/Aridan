@@ -1,5 +1,6 @@
 @props([
     'block',
+    'highlighted' => false,
 ])
 
 {{--
@@ -13,7 +14,9 @@
         'relative z-10 my-[5px] flex min-w-0 flex-col justify-center overflow-hidden border border-[rgba(20,22,26,0.22)] px-1.5 leading-[15px]',
         'rounded-l-[3px]' => ! $block->clipLeft,
         'rounded-r-[3px]' => ! $block->clipRight,
+        'reservation-highlight' => $highlighted,
     ]) }}
+    @if ($highlighted) x-init="$el.scrollIntoView({ block: 'center', inline: 'center' })" @endif
     style="{{ $attributes->get('style') }} background-color: {{ $block->color }}; color: {{ $block->textColor }};"
     role="img"
     aria-label="{{ $block->ariaLabel }}"

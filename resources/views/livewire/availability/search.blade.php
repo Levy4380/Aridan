@@ -97,8 +97,15 @@
                                         <flux:button
                                             size="sm"
                                             :variant="$option->isBest() ? 'primary' : 'filled'"
-                                            disabled
-                                            :title="__('availability.reserve_soon')"
+                                            wire:click="$dispatch('open-reservation-form', {{ json_encode([
+                                                'checkIn' => $stay->checkIn->toDateString(),
+                                                'checkOut' => $stay->checkOut->toDateString(),
+                                                'early' => $stay->earlyCheckIn,
+                                                'late' => $stay->lateCheckOut,
+                                                'people' => $peopleCount,
+                                                'apartmentId' => $apartment->id,
+                                            ]) }})"
+                                            data-test="reserve-{{ $apartment->number }}"
                                         >{{ __('availability.reserve') }}</flux:button>
                                     </span>
                                 </div>
@@ -148,4 +155,6 @@
             @endif
         </div>
     @endunless
+
+    <livewire:reservations.create-form />
 </div>

@@ -27,6 +27,10 @@ class Index extends Component
     #[Url(as: 'rango')]
     public string $range = self::RANGE_MONTH;
 
+    /** A reservation just saved: its block is highlighted for a moment. */
+    #[Url(as: 'resaltar')]
+    public ?int $highlight = null;
+
     public function mount(): void
     {
         if (! in_array($this->range, [self::RANGE_MONTH, self::RANGE_TWO_WEEKS], true)) {
