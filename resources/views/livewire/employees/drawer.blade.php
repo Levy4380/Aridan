@@ -67,7 +67,34 @@
                 </div>
             @endif
 
-            <div class="-mx-5 -mb-5 px-5 md:-mx-6 md:-mb-6 md:px-6 flex justify-end gap-2 border-t border-divider bg-surface-alt py-4">
+            @if ($form->employee && $confirmingDelete)
+                <x-delete-confirmation
+                    :title="__('employees.delete.question', ['name' => $form->employee->name])"
+                    confirm="delete"
+                    :confirm-label="__('employees.delete.confirm')"
+                    :back-label="__('employees.delete.back')"
+                    data-test="delete-confirmation"
+                >
+                    <p>{{ __('employees.delete.help') }}</p>
+                    @if ($this->reservationCount > 0)
+                        <flux:select wire:model="transferTo" :label="trans_choice('employees.delete.transfer', $this->reservationCount, ['count' => $this->reservationCount])" :description="__('employees.delete.transfer_help')" data-test="transfer-to">
+                            <flux:select.option value="">{{ __('employees.delete.choose') }}</flux:select.option>
+                            @foreach ($this->heirs as $heir)
+                                <flux:select.option :value="$heir->id">{{ $heir->name }}@if ($heir->is(auth()->user())) ({{ __('employees.you') }})@endif</flux:select.option>
+                            @endforeach
+                        </flux:select>
+                        <flux:error name="transferTo" />
+                    @endif
+                    <flux:error name="delete" />
+                </x-delete-confirmation>
+            @endif
+
+            <div class="-mx-5 -mb-5 px-5 md:-mx-6 md:-mb-6 md:px-6 flex flex-wrap justify-end gap-2 border-t border-divider bg-surface-alt py-4">
+                @if ($form->employee && ! $this->isEditingSelf() && ! $confirmingDelete)
+                    <flux:button variant="ghost" icon="trash" wire:click="startDelete" class="border border-danger-border text-danger! max-sm:w-full sm:me-auto" data-test="delete-button">
+                        {{ __('employees.delete.button') }}
+                    </flux:button>
+                @endif
                 <flux:modal.close>
                     <flux:button variant="filled">{{ __('common.cancel') }}</flux:button>
                 </flux:modal.close>

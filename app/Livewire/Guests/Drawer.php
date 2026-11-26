@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Guests;
 
+use App\Actions\Guests\DeleteGuest;
 use App\Actions\Guests\SaveGuest;
 use App\Models\Guest;
 use App\Models\Reservation;
@@ -30,6 +31,9 @@ class Drawer extends Component
 
     public bool $creating = false;
 
+    /** Showing the "¿Eliminar…?" confirmation. */
+    public bool $confirmingDelete = false;
+
     /** @var array{first_name: string, last_name: string, phone: string, document_number: string} */
     public array $form = ['first_name' => '', 'last_name' => '', 'phone' => '', 'document_number' => ''];
 
@@ -50,6 +54,7 @@ class Drawer extends Component
     public function open(?int $id = null, string $prefill = ''): void
     {
         $this->resetValidation();
+        $this->confirmingDelete = false;
 
         if ($id === null) {
             $this->guestId = null;
@@ -131,6 +136,42 @@ class Drawer extends Component
 
         $this->dispatch('guest-changed');
         $this->open($guest->id);
+    }
+
+    public function startDelete(): void
+    {
+        if (! $this->guest) {
+            return;
+        }
+
+        $this->resetValidation();
+        unset($this->history);
+        $this->confirmingDelete = true;
+    }
+
+    public function cancelDelete(): void
+    {
+        $this->confirmingDelete = false;
+        $this->resetValidation();
+    }
+
+    public function delete(DeleteGuest $deleteGuest): void
+    {
+        $guest = $this->guest;
+
+        if (! $guest) {
+            return;
+        }
+
+        $deleteGuest($guest);
+
+        $this->show = false;
+        $this->confirmingDelete = false;
+        $this->guestId = null;
+        unset($this->guest, $this->history);
+        $this->dispatch('guest-changed');
+
+        Flux::toast(variant: 'success', text: __('guests.delete.deleted', ['name' => $guest->full_name]));
     }
 
     public function render(): View

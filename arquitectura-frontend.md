@@ -361,7 +361,7 @@ Es un **panel lateral (flyout) de ~560px** que se abre sobre el calendario. Tamb
 
 **Contenido**
 1. **Encabezado:** muestra del color + "Responsable: Tomás · 02/11/2026"; nombre del huésped en 22px (tachado si está cancelada); "Depto 205 · dom 8/11 (tarde) al jue 12/11 (mañana) · 4 noches"; botón × para cerrar.
-2. **Tiles 2×2:** Personas ("3 · capacidad 4"), Pago ("Pagado · $200.000"), Condición ("No movible", con candado, o "Movible"), Extras ("Ninguno" o la lista).
+2. **Tiles 2×2:** Personas ("3 · capacidad 4"), Pago ("Pagado · $200.000", o "Señado · $80.000 de $200.000" + "faltan $120.000"), Condición ("No movible", con candado, o "Movible"), Extras ("Ninguno" o la lista).
 3. **Cliente:** `<x-guest-card>` con "Ver ficha" (abre el drawer en Clientes).
 4. **Nota de la reserva:** el texto libre tal cual.
 5. **Acciones:** **Editar** (primario) · **Mover de departamento** (secundario) · **Cancelar reserva** (texto rojo, borde rojo suave, alineado a la derecha).
@@ -385,11 +385,10 @@ Mismo panel, modo `edit`, ~580px. Edita **lo que no cambia la ocupación**. Para
 1. **Encabezado:** "Editar reserva" + "Raúl Silva · Depto 205" + ×.
 2. **`<x-stay-summary>`** con **Cambiar** → `/buscador?reserva=123` (ver 5.4, modo edición), y la ayuda "Para cambiar fechas, personas o departamento se vuelve al buscador, que revisa la disponibilidad."
 3. **Cliente:** `<x-guest-card>` con "Cambiar", que abre el `GuestPicker` (ver 5.5) dentro del panel.
-4. **Pago:** segmentado Estado; Tipo de pago (Transferencia / Efectivo) + **Monto cobrado**.
+4. **Pago:** el mismo bloque que en Nueva reserva (5.4), con los pagos ya cargados y su Facturado.
 5. **Condiciones:** checkbox Movible con su explicación; toggles de extras; stepper de colchones.
-6. **Nota de la reserva:** textarea.
-7. **Responsable:** selector de empleado (muestra de color + nombre) con los empleados activos. Si el responsable actual está inactivo, aparece igual como opción seleccionada, marcado "inactivo".
-8. **Pie fijo** (`surface-alt`): **Cancelar** · **Guardar cambios**.
+6. **Responsable y nota:** selector de empleado (muestra de color + nombre) con los empleados activos; si el responsable actual está inactivo, aparece igual como opción seleccionada, marcado "inactivo". Debajo, la nota de la reserva.
+7. **Pie fijo** (`surface-alt`): **Cancelar** · **Guardar cambios**.
 
 El responsable **se puede cambiar al editar**, por ejemplo cuando otro empleado cargó una reserva que hizo un compañero. El historial de quién modificó qué es de la próxima iteración.
 
@@ -429,10 +428,9 @@ Se abre al tocar "Reservar". Recibe las fechas, personas, flags y el depto elegi
 | Resumen | `<x-stay-summary>`: "lun 09/11 (tarde) → jue 12/11 (mañana)", "3 noches · 3 personas" (+ "entrada temprana"/"salida tardía") | **Cambiar** cierra el drawer y deja el buscador como estaba. |
 | Departamento | Radio de **3 opciones**: el elegido + los mejores siguientes, en orden de ranking, con el elegido marcado y "Mejor opción" en el primero | Se puede cambiar sin volver al buscador. |
 | Cliente | `GuestPicker` (ver 5.5) | Obligatorio. |
-| Pago | Segmentado **Pendiente / Señado / Pagado** (por defecto Señado). Si no es Pendiente: Tipo de pago (Transferencia / Efectivo) + Monto cobrado. Si es Pendiente: "Sin pago todavía: el tipo de pago y el monto se cargan cuando se seña o se paga." | Si falta monto o tipo con Señado/Pagado → advertencia `missing_amount`. |
+| Pago | **Un solo bloque con borde, con todo lo del pago.** Segmentado **Reservado / Señado / Pagado** (por defecto Señado). Con Señado: **Total de la reserva**. Con Señado o Pagado: uno o más renglones de pago, cada uno con **Monto**, **Tipo de pago** (Transferencia / Efectivo), checkbox **Facturado** y "Quitar" (si hay más de uno); botón **Agregar otro pago**; resumen en vivo "Cobrado $80.000 de $200.000 · faltan $120.000" (o "Cobrado: $X" sin total). Con Reservado: "Sin pago todavía: los pagos se cargan cuando se seña o se paga." | Advertencias `missing_amount`, `missing_total` y `deposit_covers_total`. Un renglón sin monto no se guarda. |
 | Condiciones | Checkbox **Movible** (marcado por defecto) + explicación; toggles **Cochera** y **Desayuno**; stepper **Colchones extra** (0–6) | Si `personas > capacidad + colchones`: callout naranja **en vivo**, "El 104 es para 2 y son 3: falta 1 lugar. Sumá un colchón extra." |
-| Nota | Textarea con placeholder "Preferencias, horario de llegada, reserva familiar…" | Opcional. |
-| Responsable | Selector de empleado (muestra de color + nombre), con los empleados activos | Por defecto el usuario autenticado. Se cambia cuando se carga una reserva que hizo otro empleado. |
+| Responsable y nota | Selector de empleado (muestra de color + nombre), con los empleados activos; debajo, textarea **Nota de la reserva** con placeholder "Preferencias, horario de llegada, reserva familiar…" | Responsable: por defecto el usuario autenticado; se cambia cuando se carga una reserva que hizo otro empleado. Nota: opcional. |
 | Pie | **Cancelar** · **Guardar reserva** | |
 
 **Al guardar:**
@@ -469,14 +467,15 @@ Lo usan el drawer Nueva reserva y el panel Editar. **Implementado como trait** (
   - Si es nuevo: "Si el teléfono o el DNI ya existen, te vamos a ofrecer usar ese cliente en lugar de crear uno repetido."
   - Botones **Guardar cambios** / **Crear cliente** y **Nueva reserva para este cliente** (→ `/buscador?cliente={id}`).
   - **Historial de reservas:** una fila por reserva con el color del empleado, "Depto 202 · 3 pers.", "10/11 al 14/11/2026 · Señado $100.000" y badge **Próxima / En curso / Pasada / Cancelada**. Las canceladas van tachadas y con fondo `surface-alt`. Al tocar una, se abre su panel de detalle. **Es el "historial del cliente" que pide CLAUDE.md.**
+  - **Eliminar** (patrón común en los tres drawers): botón **Eliminar …** abajo a la izquierda, con borde rojo. Abre en el mismo drawer `<x-delete-confirmation>` (fondo `danger-bg`, como "Cancelar reserva"), con lo que se pierde y **Sí, eliminar** / **No, volver**. Si está bloqueado, muestra el motivo y solo **No, volver**. Bloqueado si tiene reservas: "No se puede eliminar: tiene 3 reservas (contando las canceladas)."
 
 ### 5.6b Pendientes a facturar (`/pendientes-a-facturar`)
 
-- Cabecera: "Pendientes a facturar" + qué reservas entran. En el menú: **A facturar**.
-- **Filtro:** checkbox "Incluir pagos en efectivo" (en la URL, `?efectivo=true`). Por defecto solo transferencias. Al lado, el resumen: "N reservas · $X cobrados sin facturar".
-- **Tabla** (`Billing\Pending`, consulta `PendingInvoicesQuery`): Cliente · DNI/CUIT · Reserva (depto y fechas) · Estado (badge Señado / Pagado, + Cancelada) · Tipo de pago ("Falta tipo de pago" en naranja si no hay) · Monto recibido. Toda la fila es clickeable.
-- **Drawer de facturación** (`Billing\InvoiceDrawer`, montado en el layout, evento `open-invoice`): monto total recibido en grande con sus badges, CUIT/DNI, nombre del cliente y el botón **Facturada**, que marca la reserva y la saca de la lista. Si el cliente no tiene DNI/CUIT, un aviso con "Ver ficha". "Ver reserva" abre su panel encima.
-- **Facturada en los formularios:** checkbox junto al tipo de pago en Nueva reserva y en Editar, siempre visible. En el detalle de la reserva, una fila con el badge Facturada / No facturada, quién y cuándo, y el botón para cambiarlo (también en canceladas).
+- Cabecera: "Pendientes a facturar" + qué pagos entran. En el menú: **A facturar**.
+- **Filtro:** checkbox "Incluir pagos en efectivo" (en la URL, `?efectivo=true`). Por defecto solo transferencias. Al lado, el resumen: "N pagos · $X cobrados sin facturar".
+- **Tabla** (`Billing\Pending`, consulta `PendingInvoicesQuery`): **un pago por fila**. Cliente · DNI/CUIT · Reserva (depto y fechas) · Estado (badge Señado / Pagado de la reserva, + Cancelada) · Tipo de pago ("Falta tipo de pago" en naranja si no hay) · Monto del pago. Toda la fila es clickeable.
+- **Drawer de facturación** (`Billing\InvoiceDrawer`, montado en el layout, evento `open-invoice` con el id del pago): monto del pago en grande con sus badges (y "La reserva tiene otro pago: $X cobrados en total" si hay más), CUIT/DNI, nombre del cliente y el botón **Facturado**, que marca el pago y lo saca de la lista. Si el cliente no tiene DNI/CUIT, un aviso con "Ver ficha". "Ver reserva" abre su panel encima.
+- **Facturado en los formularios:** checkbox en cada renglón de pago en Nueva reserva y en Editar. En el detalle de la reserva, la sección **Pagos** lista cada pago con monto, tipo, badge Facturado / No facturado, quién y cuándo, y el botón para cambiarlo (también en canceladas).
 
 ### 5.7 Departamentos (`/departamentos`)
 
@@ -486,6 +485,7 @@ Lo usan el drawer Nueva reserva y el panel Editar. **Implementado como trait** (
   - **Bloqueo:** si tiene reservas futuras, el interruptor queda deshabilitado y aparece el callout naranja "No se puede desactivar: tiene 2 reservas futuras. Primero movelas o cancelalas." Es uno de los dos bloqueos duros del sistema; la action `DeactivateApartment` lo vuelve a validar.
   - **Reservas futuras:** lista con color del empleado, huésped y fechas. Cada una abre su panel.
   - Botones **Guardar cambios** / **Crear departamento** y **Ver en calendario**.
+  - **Eliminar** (patrón común en los tres drawers): botón **Eliminar …** abajo a la izquierda, con borde rojo. Abre en el mismo drawer `<x-delete-confirmation>` (fondo `danger-bg`, como "Cancelar reserva"), con lo que se pierde y **Sí, eliminar** / **No, volver**. Si está bloqueado, muestra el motivo y solo **No, volver**. Bloqueado con reservas futuras o en curso; si no, avisa "También se borran sus 4 reservas pasadas o canceladas, con sus pagos."
 
 ### 5.8 Empleados (`/empleados`)
 
@@ -498,7 +498,7 @@ Lo usan el drawer Nueva reserva y el panel Editar. **Implementado como trait** (
   - **Vista previa:** "Así se ven sus reservas", un bloque de ejemplo pintado con el color elegido y su nombre.
   - Al editar: interruptor **Activo**, "Si lo desactivás no puede entrar al sistema. Sus reservas se mantienen con su color."
   - **Guardar cambios** / **Crear empleado** (+ **Cancelar** al crear).
-- No hay borrado: solo se desactiva.
+  - **Eliminar** (patrón común en los tres drawers): botón **Eliminar …** abajo a la izquierda, con borde rojo. Abre en el mismo drawer `<x-delete-confirmation>` (fondo `danger-bg`, como "Cancelar reserva"), con lo que se pierde y **Sí, eliminar** / **No, volver**. Si está bloqueado, muestra el motivo y solo **No, volver**. Si tiene reservas, la confirmación pide **a quién pasan** (selector con los empleados activos, por defecto quien elimina). No aparece al editarse a uno mismo.
 
 ---
 

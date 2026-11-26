@@ -69,6 +69,26 @@
                         <p class="text-sm text-subtle">{{ __('guests.no_history') }}</p>
                     @endforelse
                 </section>
+
+                @if ($confirmingDelete)
+                    @php($count = $this->history->count())
+                    <x-delete-confirmation
+                        :title="__('guests.delete.question', ['name' => $this->guest->full_name])"
+                        :confirm="$count === 0 ? 'delete' : null"
+                        :confirm-label="__('guests.delete.confirm')"
+                        :back-label="__('guests.delete.back')"
+                        data-test="delete-confirmation"
+                    >
+                        <p>{{ $count > 0 ? trans_choice('guests.delete.blocked', $count, ['count' => $count]) : __('guests.delete.help') }}</p>
+                        <flux:error name="delete" />
+                    </x-delete-confirmation>
+                @else
+                    <div class="flex border-t border-divider pt-4">
+                        <flux:button variant="ghost" icon="trash" wire:click="startDelete" class="border border-danger-border text-danger! max-sm:w-full" data-test="delete-button">
+                            {{ __('guests.delete.button') }}
+                        </flux:button>
+                    </div>
+                @endif
             @endif
         </div>
     </flux:modal>

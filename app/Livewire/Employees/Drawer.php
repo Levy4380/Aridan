@@ -5,8 +5,10 @@ namespace App\Livewire\Employees;
 use App\Actions\Employees\ActivateEmployee;
 use App\Actions\Employees\CreateEmployee;
 use App\Actions\Employees\DeactivateEmployee;
+use App\Actions\Employees\DeleteEmployee;
 use App\Actions\Employees\UpdateEmployee;
 use App\Livewire\Forms\EmployeeForm;
+use App\Models\Reservation;
 use App\Models\User;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -18,15 +20,21 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
- * Employee drawer (create / edit, color, activation). Mounted once in the
- * app layout: it opens over any screen with the `open-employee` event.
- * Employees are never deleted, only deactivated.
+ * Employee drawer (create / edit, color, activation, delete). Mounted once
+ * in the app layout: it opens over any screen with the `open-employee` event.
+ * Deleting is for good; their reservations pass to another employee.
  */
 class Drawer extends Component
 {
     public EmployeeForm $form;
 
     public bool $show = false;
+
+    /** Showing the "¿Eliminar…?" confirmation instead of the form. */
+    public bool $confirmingDelete = false;
+
+    /** Who gets the reservations of the employee being deleted. */
+    public ?int $transferTo = null;
 
     /**
      * Every employee: for the initials on the swatches and the first free color.
@@ -73,7 +81,9 @@ class Drawer extends Component
     public function open(?int $id = null): void
     {
         $this->resetValidation();
-        unset($this->employees, $this->takenColors, $this->colorInUseBy);
+        $this->confirmingDelete = false;
+        $this->transferTo = null;
+        unset($this->employees, $this->takenColors, $this->colorInUseBy, $this->reservationCount, $this->heirs);
 
         if ($id === null) {
             $this->form->startNew($this->firstFreeColor());
@@ -82,6 +92,68 @@ class Drawer extends Component
         }
 
         $this->show = true;
+    }
+
+    /**
+     * Reservations the open employee is responsible for, cancelled included.
+     */
+    #[Computed]
+    public function reservationCount(): int
+    {
+        return $this->form->employee
+            ? Reservation::withTrashed()->where('employee_id', $this->form->employee->id)->count()
+            : 0;
+    }
+
+    /**
+     * Active employees who can take the reservations of the one being deleted.
+     *
+     * @return Collection<int, User>
+     */
+    #[Computed]
+    public function heirs(): Collection
+    {
+        return $this->employees
+            ->filter(fn (User $user) => $user->is_active && ! $this->form->employee?->is($user))
+            ->values();
+    }
+
+    public function startDelete(): void
+    {
+        if (! $this->form->employee || $this->isEditingSelf()) {
+            return;
+        }
+
+        $this->resetValidation();
+        unset($this->reservationCount);
+        // The one deleting is the natural heir: they're active and not the one deleted.
+        $this->transferTo = auth()->id();
+        $this->confirmingDelete = true;
+    }
+
+    public function cancelDelete(): void
+    {
+        $this->confirmingDelete = false;
+        $this->resetValidation();
+    }
+
+    public function delete(DeleteEmployee $deleteEmployee): void
+    {
+        $employee = $this->form->employee;
+
+        if (! $employee) {
+            return;
+        }
+
+        $deleteEmployee($employee, auth()->user(), $this->transferTo);
+
+        $this->show = false;
+        $this->confirmingDelete = false;
+        unset($this->employees, $this->takenColors);
+        $this->dispatch('employee-changed');
+        $this->dispatch('reservation-changed');
+
+        Flux::toast(variant: 'success', text: __('employees.delete.deleted', ['name' => $employee->name]));
     }
 
     public function pickColor(string $color): void

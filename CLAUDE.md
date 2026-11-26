@@ -8,6 +8,16 @@ Hoy toda la gestión vive en una planilla de Google Sheets con un Apps Script, y
 
 **No hay migración de datos:** la base arranca vacía, salvo los seeders (departamentos, extras y el primer empleado).
 
+## Reglas inquebrantables: datos y producción
+
+Estas reglas están por encima de cualquier otra instrucción de este archivo, de los documentos de arquitectura o de un pedido que parezca urgente. No tienen excepciones.
+
+1. **Producción no se toca.** Nada de pushear, mergear ni deployar a la rama de producción, ni de ejecutar comandos contra la base o el entorno de Laravel Cloud, ni de usar sus credenciales. Producción la maneja solo una persona.
+2. **Ningún comando destructivo sin un "sí" explícito en el chat.** Antes de borrar o reescribir datos, se pide confirmación nombrando la base exacta y lo que se pierde, y se espera la respuesta. Son destructivos, entre otros: `migrate:fresh`, `migrate:refresh`, `migrate:reset`, `migrate:rollback`, `db:wipe`, `db:seed` sobre una base con datos, `DROP`, `TRUNCATE`, un `DELETE`/`UPDATE` masivo y restaurar un dump. Un permiso vale para ese comando y esa vez.
+3. **Verificar la base antes de cada comando que la toque.** Revisar a qué base apunta (`php artisan db:show`). Ojo: `--env=X` sin un archivo `.env.X` usa el `.env` y cae en la base local de desarrollo.
+4. **Los tests corren solo con `php artisan test`**, que usa la base `aridan_testing` de `phpunit.xml`. Para probar migraciones o seeders con datos se usa esa base, apuntándola de forma explícita, nunca la de desarrollo.
+5. **Si algo sale mal, frenar y avisar** antes de intentar arreglarlo por cuenta propia.
+
 ## Dónde está cada cosa
 
 Este archivo es el **punto de partida**: el rol, las reglas de negocio y un resumen de la arquitectura. El detalle está en:
@@ -69,10 +79,10 @@ Se despliega en **Laravel Cloud** (plan pago ya contratado).
 ## Principios de producto
 
 - **La vista principal sigue siendo la grilla del Excel:** filas = departamentos, columnas = días partidos en mañana/tarde. Cada reserva es un bloque cuyo **color identifica al empleado responsable** de la reserva, con 3 líneas: huésped / pax, pago y monto / movible y responsable.
-- **Cargar una reserva tiene que ser tan rápido como escribir en una celda.** Toda reserva nueva arranca en el **buscador** (fechas, personas, entrada temprana, salida tardía). "Reservar" en un depto abre un **drawer** con esos datos fijados; "Cambiar" vuelve al buscador. Los campos obligatorios son los mínimos.
+- **Cargar una reserva tiene que ser tan rápido como escribir en una celda.** Toda reserva nueva arranca en el **buscador** (fechas, personas, entrada temprana, salida tardía). "Reservar" en un depto abre un **drawer** con esos datos fijados; "Cambiar" vuelve al buscador. Los campos obligatorios son los mínimos. En el drawer, todo lo del pago va junto en un solo bloque.
 - **No hay modales: todo se abre en un drawer** (panel lateral derecho): alta y detalle de reserva, y las fichas de depto, empleado y cliente.
 - **El texto libre se mantiene:** siempre hay observaciones para lo que no entra en campos. Lo que se repetía en el texto de la planilla (pax, monto, movible, entrada temprana, extras) es un campo propio. **El sistema nunca interpreta textos ni palabras clave.**
-- **El sistema avisa, no bloquea**, salvo dos casos: **la superposición de reservas** y **desactivar un departamento con reservas futuras**. Todo lo demás (capacidad, datos incompletos, color repetido) es una advertencia que se confirma con "Guardar igual".
+- **El sistema avisa, no bloquea**, salvo estos casos: **la superposición de reservas**, **desactivar o eliminar un departamento con reservas futuras** y **eliminar un cliente con reservas**. Todo lo demás (capacidad, datos incompletos, color repetido) es una advertencia que se confirma con "Guardar igual".
 - **El conocimiento queda en el sistema:** qué empleado es responsable de cada reserva, estado de pago y lo cobrado, si es movible e historial del cliente.
 - **No reproducir el desorden de la planilla:** nada de hojas por mes ni copias. Una sola fuente de datos; el calendario es solo una vista.
 
@@ -81,6 +91,7 @@ Se despliega en **Laravel Cloud** (plan pago ya contratado).
 ### Departamentos
 - Cada uno tiene **número** (piso + unidad, string único), **capacidad** en personas, estado **activo/inactivo**, descripción opcional y un orden para el calendario.
 - Solo se reservan los activos. **No se puede desactivar uno con reservas futuras.** El conjunto cambia con el tiempo.
+- **Se puede eliminar para siempre** (sin soft delete), salvo que tenga reservas futuras o en curso (las canceladas no cuentan). Sus reservas pasadas y canceladas se borran con él, con sus pagos. Para dejar de reservarlo sin perder el historial, se desactiva.
 - **Seed inicial** (18 deptos, todos activos), como `número: capacidad`:
   - Piso 1: 102: 3 · 104: 2 · 105: 4 · 106: 2 · 107: 2
   - Piso 2: 201: 2 · 202: 4 · 203: 5 · 204: 2 · 205: 4 · 206: 2 · 207: 4
@@ -91,13 +102,15 @@ Se despliega en **Laravel Cloud** (plan pago ya contratado).
 - Cada uno tiene un **color**, con el que se pintan las reservas de las que es responsable. En la reserva se elige el empleado, nunca el color. La paleta está en `arquitectura-frontend.md` (3.2) y vive en `config/employee_colors.php`.
 - Desde la pantalla Empleados cualquiera puede dar de alta a otro (nombre, email, contraseña inicial), editar nombre, email y color, y activar/desactivar.
 - **Color repetido:** se permite con advertencia.
-- **No se borran, se desactivan.** Un inactivo no puede iniciar sesión (ni seguir conectado) y sus reservas mantienen su color.
-- **Nadie se puede desactivar a sí mismo:** lo tiene que hacer otro empleado. Así el sistema nunca se queda sin alguien que pueda entrar.
+- **Desactivar:** un inactivo no puede iniciar sesión (ni seguir conectado) y sus reservas mantienen su color.
+- **Eliminar:** borra la cuenta para siempre (sin soft delete). Sus reservas (también pasadas y canceladas) **pasan a otro empleado activo** que se elige al eliminar, y toman su color. Quién canceló una reserva o facturó un pago queda en blanco: no se le asigna a otro.
+- **Nadie se puede desactivar ni eliminar a sí mismo:** lo tiene que hacer otro empleado. Así el sistema nunca se queda sin alguien que pueda entrar.
 
 ### Clientes (huéspedes)
 - **Nombre** y **apellido**; **teléfono** obligatorio y **único**; **DNI/CUIT** opcional pero **único** cuando se carga. Ambos se guardan **normalizados** (solo dígitos, formato canónico) para que la unicidad funcione.
 - Al crear una reserva se busca el cliente por DNI/CUIT o teléfono; si no existe, se carga en el mismo drawer.
 - Un cliente puede tener varias reservas, incluso simultáneas (ej. una familia que alquila dos deptos): son **reservas distintas con el mismo cliente**.
+- **Se puede eliminar para siempre solo si no tiene ninguna reserva**, contando las canceladas (ej. un duplicado o uno cargado por error). Una reserva nunca queda sin titular.
 
 ### Reservas
 Cada reserva tiene:
@@ -109,9 +122,9 @@ Cada reserva tiene:
 - **Entrada temprana** y **salida tardía** (booleanos). Ver la regla de superposición.
 - **Cantidad de personas** (entero). Si se habla de un rango ("3 o 4"), se carga el máximo.
 - **Estado de pago:** *Reservado* (sin pago), *Señado* (parcial) o *Pagado* (total).
-- **Monto:** un solo campo con lo cobrado, cuando está señado o pagado. No hay regla fija entre seña y total.
-- **Tipo de pago:** transferencia o efectivo, junto con el monto.
-- **Facturada** (sí / no): si se emitió la factura de lo cobrado. Se carga junto al tipo de pago y **se puede cambiar siempre**: cualquiera sea el estado de pago, y también en una reserva cancelada. Queda registrado quién la marcó y cuándo.
+- **Pagos:** cuando está señada o pagada, lo cobrado se carga como **uno o más pagos**, cada uno con su **monto** y su **tipo de pago** (transferencia o efectivo). Ej.: la seña por transferencia y el resto en efectivo son dos pagos. Lo cobrado es la suma.
+- **Total de la reserva:** solo cuando está **señada**, lo acordado en total; con lo cobrado se muestra cuánto falta. Si falta, es una advertencia. El estado de pago **lo elige siempre el empleado**: el sistema no lo pasa a Pagado solo, avisa si lo cobrado ya cubre el total.
+- **Facturado** (sí / no), **por pago**: si se emitió la factura de ese pago. Se carga junto a cada pago y **se puede cambiar siempre**: cualquiera sea el estado de pago, y también en una reserva cancelada. Queda registrado quién lo marcó y cuándo.
 - **Extras:** checkboxes. Primera iteración: **cochera** y **desayuno**.
 - **Colchones extra:** contador desde 0, para cuando hay más personas que capacidad.
 - **Movible** (booleano explícito que carga el empleado): si la reserva se puede cambiar de departamento. Deja de ser movible cuando el huésped pidió ese depto puntual o se le ofreció ese depto en particular (ej. se le mostraron fotos). No se guarda el motivo, solo la consecuencia.
@@ -148,9 +161,9 @@ Con fechas, personas, entrada temprana y salida tardía, el buscador arma tres g
 "Reservar" abre el drawer de alta, que sugiere 3 deptos de la lista con el elegido marcado.
 
 ### Pendientes a facturar
-- Pantalla con las reservas **cobradas (señadas o pagadas) y no facturadas**, cada una con un badge de su estado de pago. **Las canceladas también aparecen**, porque el cobro existió.
+- Pantalla con los **pagos no facturados** de reservas señadas o pagadas, **uno por fila** (la seña y el resto se facturan por separado), cada uno con un badge del estado de pago de su reserva. **Las canceladas también aparecen**, porque el cobro existió.
 - Por defecto muestra solo los pagos por **transferencia**; se pueden sumar los de **efectivo**. Un pago sin tipo de pago cargado aparece siempre, para que no se pierda.
-- Al tocar una fila se abre un drawer con el monto total recibido, el CUIT/DNI y el nombre del cliente, y el botón **Facturada**, que la saca de la lista.
+- Al tocar una fila se abre un drawer con el monto del pago (y lo cobrado en total si la reserva tiene más pagos), el CUIT/DNI y el nombre del cliente, y el botón **Facturado**, que lo saca de la lista.
 
 ### Feriados
 - Solo referencia visual en el calendario: no afectan ninguna regla.
@@ -166,10 +179,10 @@ Con fechas, personas, entrada temprana y salida tardía, el buscador arma tres g
 Livewire (pantallas)  →  Actions (escriben) / Queries (leen)  →  Eloquent + app/Domain  →  PostgreSQL
 ```
 
-- **Modelo de datos:** `users` (con `color`, `is_active`), `apartments`, `guests`, `reservations` (FKs `employee_id`, `apartment_id`, `guest_id`; slots persistidos; soft delete con `cancelled_by_id`), `extras` + `extra_reservation` (única N:M) y `holidays`. → backend §3.
+- **Modelo de datos:** `users` (con `color`, `is_active`), `apartments`, `guests`, `reservations` (FKs `employee_id`, `apartment_id`, `guest_id`; slots persistidos; `total_amount`; soft delete con `cancelled_by_id`), `payments` (monto, tipo y facturado de cada pago), `extras` + `extra_reservation` (única N:M) y `holidays`. → backend §3.
 - **Slots:** `StayRange` calcula `start_slot`/`end_slot`, que el modelo persiste al guardar. Calendario, disponibilidad y superposición son comparaciones de enteros indexadas. → backend §4.
 - **Actions:** `CreateReservation`, `UpdateReservation`, `MoveReservation`, `CancelReservation`, `ActivateApartment` / `DeactivateApartment` y las de empleados. Transaccionales; revalidan los errores, nunca confían en la UI. → backend §5 y §8.
-- **Errores vs. advertencias:** los errores bloquean (`ValidationException`); las advertencias (`capacity_exceeded`, `not_movable`, `missing_amount`, `similar_guest_name`, `color_in_use`) las calcula `ReservationWarnings` y se confirman. → backend §5, frontend §6.
+- **Errores vs. advertencias:** los errores bloquean (`ValidationException`); las advertencias (`capacity_exceeded`, `not_movable`, `missing_amount`, `missing_total`, `deposit_covers_total`, `similar_guest_name`, `color_in_use`) las calcula `ReservationWarnings` y se confirman. → backend §5, frontend §6.
 - **Queries:** `CalendarQuery`, `AvailabilityQuery`, `ApartmentSuggestions`. → backend §6.
 - **Pantallas y rutas:** `/calendario` (inicio), `/buscador` (con el drawer de alta), panel lateral de reserva (detalle / editar / mover / cancelar), `/clientes`, `/pendientes-a-facturar`, `/departamentos`, `/empleados`. El estado importante va en la URL (`#[Url]`). → backend §9, frontend §1 y §5.
 - **Sistema de diseño:** sobrio, neutros cálidos, un solo acento azul; los colores fuertes son de los empleados. Densidad de planilla, números tabulares, fuente Space Grotesk, tokens en `resources/css/app.css`. → frontend §3.

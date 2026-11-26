@@ -52,7 +52,33 @@
                     </div>
                 @endif
 
-                <div class="-mx-5 -mb-5 px-5 md:-mx-6 md:-mb-6 md:px-6 flex justify-end gap-2 border-t border-divider bg-surface-alt py-4">
+                @if ($form->apartment && $confirmingDelete)
+                    @php($future = $this->futureReservations->count())
+                    <x-delete-confirmation
+                        :title="__('apartments.delete.question', ['number' => $form->apartment->number])"
+                        :confirm="$future === 0 ? 'delete' : null"
+                        :confirm-label="__('apartments.delete.confirm')"
+                        :back-label="__('apartments.delete.back')"
+                        data-test="delete-confirmation"
+                    >
+                        @if ($future > 0)
+                            <p>{{ trans_choice('apartments.delete.blocked', $future, ['count' => $future]) }}</p>
+                        @else
+                            <p>{{ __('apartments.delete.help') }}</p>
+                            @if ($this->pastReservationCount > 0)
+                                <p class="font-semibold">{{ trans_choice('apartments.delete.with_reservations', $this->pastReservationCount, ['count' => $this->pastReservationCount]) }}</p>
+                            @endif
+                        @endif
+                        <flux:error name="delete" />
+                    </x-delete-confirmation>
+                @endif
+
+                <div class="-mx-5 -mb-5 px-5 md:-mx-6 md:-mb-6 md:px-6 flex flex-wrap justify-end gap-2 border-t border-divider bg-surface-alt py-4">
+                    @if ($form->apartment && ! $confirmingDelete)
+                        <flux:button variant="ghost" icon="trash" wire:click="startDelete" class="border border-danger-border text-danger! max-sm:w-full sm:me-auto" data-test="delete-button">
+                            {{ __('apartments.delete.button') }}
+                        </flux:button>
+                    @endif
                     <flux:modal.close>
                         <flux:button variant="filled">{{ __('common.cancel') }}</flux:button>
                     </flux:modal.close>

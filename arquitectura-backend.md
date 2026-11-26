@@ -89,11 +89,8 @@ PostgreSQL (serverless en Laravel Cloud)
 | start_slot | integer | **Derivado.** Ver la sección 4. |
 | end_slot | integer | **Derivado**, exclusivo. Ver la sección 4. |
 | people_count | unsigned tinyint | |
-| payment_status | string | Enum PHP `PaymentStatus`: `pending`, `deposit`, `paid`. |
-| amount | decimal(12,2), nullable | Lo cobrado. |
-| payment_method | string, nullable | Enum PHP `PaymentMethod`: `transfer`, `cash`. Se carga cuando hay pago. |
-| invoiced_at | timestamp, nullable | Facturada: `null` = no facturada. Se cambia siempre con `SetInvoiced`, también en canceladas. |
-| invoiced_by_id | FK → users, nullable | Quién la marcó como facturada. |
+| payment_status | string | Enum PHP `PaymentStatus`: `pending`, `deposit`, `paid`. Lo elige el empleado; nunca se deriva de los pagos. |
+| total_amount | decimal(12,2), nullable | Total de la reserva. Solo con `deposit` (`PaymentStatus::hasTotal()`); en otro estado se guarda `null`. Lo cobrado está en `payments`. |
 | extra_mattresses | unsigned tinyint | Colchones extra. Por defecto `0`. |
 | is_movable | boolean | Por defecto `true`. |
 | notes | text, nullable | La "nota de la reserva". |
@@ -104,6 +101,22 @@ PostgreSQL (serverless en Laravel Cloud)
 **Reservas canceladas:** quedan en la base pero **no ocupan el departamento**. El trait `SoftDeletes` las excluye de todas las consultas por defecto: superposición, calendario, disponibilidad y el chequeo de `DeactivateApartment`. Solo se consultan con `withTrashed()` / `onlyTrashed()`, por ejemplo en un listado de canceladas para control.
 
 Índice: `(apartment_id, start_slot, end_slot)`.
+
+### `payments` (pagos)
+
+Lo cobrado de una reserva, en uno o más pagos (ej. la seña por transferencia y el resto en efectivo). Solo existen con `payment_status` `deposit` o `paid`: al pasar a `pending` se borran. Cada pago se factura por separado.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| id | bigint PK | |
+| reservation_id | FK → reservations, cascade | |
+| amount | decimal(12,2) | Mayor a 0. |
+| method | string, nullable | Enum PHP `PaymentMethod`: `transfer`, `cash`. Si falta, advertencia `missing_amount`. |
+| invoiced_at | timestamp, nullable, índice | Facturado: `null` = no facturado. Se cambia siempre (`SetInvoiced` o desde el formulario), también en canceladas. |
+| invoiced_by_id | FK → users, nullable | Quién lo marcó como facturado. |
+| timestamps | | |
+
+`Reservation::paidAmount()` es la suma (o `null` sin pagos) y `Reservation::balance()` lo que falta del total cuando está señada.
 
 ### `extras` y `extra_reservation`
 | `extras` | Tipo | Notas |
@@ -126,7 +139,8 @@ PostgreSQL (serverless en Laravel Cloud)
 - `Apartment hasMany Reservation`
 - `Guest hasMany Reservation`
 - `User hasMany Reservation`, vía `employee_id`
-- `Reservation belongsTo Apartment, Guest, User (employee)` y `belongsToMany Extra`
+- `Reservation belongsTo Apartment, Guest, User (employee)`, `belongsToMany Extra` y `hasMany Payment`
+- `Payment belongsTo Reservation` (también cancelada) y `User (invoicedBy)`
 
 ## 4. Slots (medias jornadas): el núcleo de la regla de superposición
 
@@ -157,14 +171,17 @@ Cada action es una clase invocable en `app/Actions`, con una única responsabili
 
 | Action | Qué hace | Bloquea si… |
 |---|---|---|
-| `CreateReservation` | Recibe un `guest_id` existente o los datos de un guest nuevo; si es nuevo, lo crea. Después crea la reserva y asocia los extras. Recibe el `employee_id` del responsable, que la UI precarga con el usuario autenticado. | Hay superposición; el departamento está inactivo; `check_out_date <= check_in_date`; el guest nuevo repite `phone` o `document_number`; el responsable es un empleado inactivo. |
-| `UpdateReservation` | Edita los datos de la reserva, incluido el responsable. Si el responsable no cambia, puede seguir siendo un empleado ya inactivo. | Lo mismo que `CreateReservation`, excluyendo a la propia reserva del chequeo. |
+| `CreateReservation` | Recibe un `guest_id` existente o los datos de un guest nuevo; si es nuevo, lo crea. Después crea la reserva, asocia los extras y crea los pagos (`payments.*`: `amount`, `method`, `is_invoiced`; quien carga queda como `invoiced_by_id`). Recibe el `employee_id` del responsable, que la UI precarga con el usuario autenticado. | Hay superposición; el departamento está inactivo; `check_out_date <= check_in_date`; el guest nuevo repite `phone` o `document_number`; el responsable es un empleado inactivo. |
+| `UpdateReservation` | Edita los datos de la reserva, incluido el responsable. Si el responsable no cambia, puede seguir siendo un empleado ya inactivo. Sincroniza los pagos: los que vienen con `id` se mantienen (con su facturación), los nuevos se crean y los que faltan se borran. | Lo mismo que `CreateReservation`, excluyendo a la propia reserva del chequeo, y un `payments.*.id` que no es de esta reserva. |
 | `MoveReservation` | Cambia el departamento y, opcionalmente, las fechas. | Hay superposición en el destino o el destino está inactivo. |
 | `CancelReservation` | Guarda `cancelled_by_id` y hace el soft delete. El departamento queda libre en esas fechas. | — |
 | `DeactivateApartment` | Pone `is_active = false`. | El departamento tiene reservas futuras (`end_slot > currentSlot`). |
+| `DeleteApartment` | Borra el depto para siempre, con sus reservas pasadas y canceladas (`forceDelete`; pagos y extras caen en cascada). Bloquea el depto con `lockForUpdate` mientras chequea. | Tiene reservas futuras o en curso, igual que `DeactivateApartment`. |
 | `ActivateApartment` | Pone `is_active = true`. | — |
-| `SetInvoiced` | Marca una reserva como facturada o no, con quién y cuándo. | — (se puede cambiar siempre, también en canceladas) |
+| `SetInvoiced` | Marca un **pago** como facturado o no, con quién y cuándo. | — (se puede cambiar siempre, también en canceladas) |
 | `SaveGuest` (`app/Actions/Guests`) | Alta y edición de un cliente desde la pantalla Clientes. | Falta nombre, apellido o teléfono; el teléfono o el DNI/CUIT (normalizados) ya son de otro cliente. |
+| `DeleteGuest` (`app/Actions/Guests`) | Borra el cliente para siempre. | Tiene alguna reserva, contando las canceladas. |
+| `DeleteEmployee` (`app/Actions/Employees`) | Borra la cuenta para siempre. Pasa todas sus reservas (con `withTrashed`) al empleado elegido, pone en `null` `cancelled_by_id` e `invoiced_by_id` que lo apunten y borra sus sesiones (las passkeys caen en cascada). | Se elimina a sí mismo; tiene reservas y no se eligió un empleado activo distinto a quien pasarlas. |
 | `CreateApartment` / `UpdateApartment` | Alta y edición de número, capacidad, descripción y orden. La activación va por las actions de arriba. | El número se repite; la capacidad es menor a 1. |
 
 ### Errores y advertencias
@@ -174,7 +191,9 @@ El principio es "**el sistema avisa, no bloquea**". Por eso se separan dos tipos
 - **Advertencias**: no bloquean, pero requieren que el empleado las confirme. Las calcula `App\Domain\ReservationWarnings` **antes** de ejecutar la action. Cada advertencia tiene una clave en inglés (`capacity_exceeded`) y su texto en español en `lang/es/`.
   - **`capacity_exceeded`:** `people_count > capacity + extra_mattresses` ("Faltan N lugares: sumá colchones extra").
   - **`not_movable`:** al mover una reserva con `is_movable = false` ("Esta reserva no es movible: ¿moverla igual?").
-  - **`missing_amount`:** `payment_status` es `deposit` o `paid` pero no hay `amount` o `payment_method`.
+  - **`missing_amount`:** `payment_status` es `deposit` o `paid` pero no hay ningún pago con monto, o algún pago tiene monto sin tipo (o tipo sin monto). Un renglón vacío de más se ignora.
+  - **`missing_total`:** `payment_status` es `deposit` y no hay `total_amount`.
+  - **`deposit_covers_total`:** `payment_status` es `deposit` y lo cobrado ya alcanza el total ("¿No está pagada?"). El estado nunca cambia solo.
   - **`similar_guest_name`:** se está creando un guest nuevo y ya existe otro con el mismo nombre y apellido, pero con distinto teléfono. Puede ser la misma persona con otro número.
 
 ### Búsqueda y alta de clientes
@@ -263,7 +282,7 @@ Queda aislada en su propia clase para poder ajustar los pesos sin tocar nada má
 
 - Login del starter kit (Fortify), **básico**: sin registro público, sin recuperación de contraseña ni verificación de email (no hay mail), sin 2FA ni passkeys. Todas las features opcionales de Fortify están apagadas en `config/fortify.php`. Cada empleado cambia su nombre, email y contraseña en `/perfil`.
 - **Primer empleado:** se crea con el comando `php artisan employee:create` o un seeder. Hace falta porque no hay registro público.
-- **El resto:** se gestiona desde la pantalla Empleados (`/empleados`). Ahí se dan de alta, se editan el nombre, el email y el color, y se activan o desactivan. Actions: `CreateEmployee`, `UpdateEmployee`, `DeactivateEmployee` / `ActivateEmployee`. `DeactivateEmployee` no deja que un empleado se desactive a sí mismo, para que nunca se quede el sistema sin nadie que pueda entrar.
+- **El resto:** se gestiona desde la pantalla Empleados (`/empleados`). Ahí se dan de alta, se editan el nombre, el email y el color, y se activan o desactivan. Actions: `CreateEmployee`, `UpdateEmployee`, `DeactivateEmployee` / `ActivateEmployee` y `DeleteEmployee`. Ni `DeactivateEmployee` ni `DeleteEmployee` dejan que un empleado se desactive o se elimine a sí mismo, para que nunca se quede el sistema sin nadie que pueda entrar.
 - **Login de inactivos:** un empleado con `is_active = false` no puede entrar. Se valida en el login (`Fortify::authenticateUsing` en `FortifyServiceProvider`, con el mensaje `auth.inactive` solo si la contraseña es correcta) y con el middleware `EnsureEmployeeIsActive`, que cierra la sesión si lo desactivan mientras está conectado.
 - **Advertencia** `color_in_use`: aparece si el color elegido ya lo usa otro empleado. No bloquea.
 - **Permisos:** todos los empleados autenticados pueden hacer todo; no hay roles ni policies por ahora. Todas las rutas van con el middleware `auth`.
@@ -277,7 +296,7 @@ Queda aislada en su propia clase para poder ajustar los pesos sin tocar nada má
 | `/reservas/{reservation}` | `reservations.show` | Abre el calendario en el mes de la reserva con su panel (detalle, edición, movimiento y cancelación). |
 | `/departamentos` | `apartments.index` | ABM de departamentos |
 | `/clientes` | `guests.index` | Listado y edición de clientes |
-| `/pendientes-a-facturar` | `billing.pending` | Reservas cobradas y no facturadas (`PendingInvoicesQuery`); por defecto solo transferencias, `?efectivo=true` suma efectivo |
+| `/pendientes-a-facturar` | `billing.pending` | Pagos no facturados de reservas señadas o pagadas, uno por fila (`PendingInvoicesQuery`); por defecto solo transferencias, `?efectivo=true` suma efectivo |
 | `/empleados` | `employees.index` | Alta, edición, color y activación de empleados |
 
 ## 10. Estructura de carpetas

@@ -14,6 +14,20 @@ return [
     'preview_guest' => 'Familia Pérez',
     'preview_payment' => '3 pers. · Señado $100.000',
 
+    'delete' => [
+        'button' => 'Eliminar empleado',
+        'question' => '¿Eliminar a :name?',
+        'help' => 'Se borra su cuenta para siempre: no puede volver a entrar y no se puede deshacer. Si solo tiene que dejar de entrar, desactivalo.',
+        'transfer' => '{1} Tiene 1 reserva a su cargo. ¿A quién pasa?|[2,*] Tiene :count reservas a su cargo (también pasadas y canceladas). ¿A quién pasan?',
+        'transfer_help' => 'Toman el color del nuevo responsable.',
+        'choose' => 'Elegí un empleado',
+        'choose_heir' => 'Elegí a qué empleado activo pasan sus reservas.',
+        'cannot_self' => 'No te podés eliminar a vos mismo. Pedíselo a otro empleado.',
+        'confirm' => 'Sí, eliminar',
+        'back' => 'No, volver',
+        'deleted' => ':name fue eliminado.',
+    ],
+
     'columns' => [
         'employee' => 'Empleado',
         'email' => 'Email (usuario)',

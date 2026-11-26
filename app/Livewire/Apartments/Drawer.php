@@ -5,6 +5,7 @@ namespace App\Livewire\Apartments;
 use App\Actions\Apartments\ActivateApartment;
 use App\Actions\Apartments\CreateApartment;
 use App\Actions\Apartments\DeactivateApartment;
+use App\Actions\Apartments\DeleteApartment;
 use App\Actions\Apartments\UpdateApartment;
 use App\Livewire\Forms\ApartmentForm;
 use App\Models\Apartment;
@@ -28,10 +29,14 @@ class Drawer extends Component
 
     public bool $show = false;
 
+    /** Showing the "¿Eliminar…?" confirmation. */
+    public bool $confirmingDelete = false;
+
     #[On('open-apartment')]
     public function open(?int $id = null): void
     {
         $this->resetValidation();
+        $this->confirmingDelete = false;
 
         if ($id === null) {
             $this->form->startNew(((int) Apartment::max('sort_order')) + 10);
@@ -39,7 +44,7 @@ class Drawer extends Component
             $this->form->fillFrom(Apartment::findOrFail($id));
         }
 
-        unset($this->futureReservations);
+        unset($this->futureReservations, $this->pastReservationCount);
         $this->show = true;
     }
 
@@ -56,10 +61,60 @@ class Drawer extends Component
             : new Collection;
     }
 
+    /**
+     * Past and cancelled reservations: they are deleted with the apartment.
+     */
+    #[Computed]
+    public function pastReservationCount(): int
+    {
+        return $this->form->apartment
+            ? Reservation::withTrashed()->where('apartment_id', $this->form->apartment->id)->count() - $this->futureReservations->count()
+            : 0;
+    }
+
     #[On('reservation-changed')]
     public function refresh(): void
     {
-        unset($this->futureReservations);
+        unset($this->futureReservations, $this->pastReservationCount);
+    }
+
+    public function startDelete(): void
+    {
+        if (! $this->form->apartment) {
+            return;
+        }
+
+        $this->resetValidation();
+        unset($this->futureReservations, $this->pastReservationCount);
+        $this->confirmingDelete = true;
+    }
+
+    public function cancelDelete(): void
+    {
+        $this->confirmingDelete = false;
+        $this->resetValidation();
+    }
+
+    public function delete(DeleteApartment $deleteApartment): void
+    {
+        $apartment = $this->form->apartment;
+
+        if (! $apartment) {
+            return;
+        }
+
+        try {
+            $deleteApartment($apartment);
+        } finally {
+            unset($this->futureReservations, $this->pastReservationCount);
+        }
+
+        $this->show = false;
+        $this->confirmingDelete = false;
+        $this->dispatch('apartment-changed');
+        $this->dispatch('reservation-changed');
+
+        Flux::toast(variant: 'success', text: __('apartments.delete.deleted', ['number' => $apartment->number]));
     }
 
     public function save(

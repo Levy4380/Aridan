@@ -21,6 +21,16 @@ return [
     'view' => 'Ver ficha',
     'optional' => 'opcional',
 
+    'delete' => [
+        'button' => 'Eliminar cliente',
+        'question' => '¿Eliminar a :name?',
+        'help' => 'Se borra para siempre y no se puede deshacer.',
+        'blocked' => '{1} No se puede eliminar: tiene 1 reserva (contando las canceladas).|[2,*] No se puede eliminar: tiene :count reservas (contando las canceladas).',
+        'confirm' => 'Sí, eliminar',
+        'back' => 'No, volver',
+        'deleted' => ':name fue eliminado.',
+    ],
+
     'columns' => [
         'name' => 'Nombre',
         'phone' => 'Teléfono',
