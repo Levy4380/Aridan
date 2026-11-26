@@ -15,6 +15,8 @@
     <span class="flex items-center gap-1 font-medium"><flux:icon.lock-closed variant="micro" class="size-3.5" /> {{ __('calendar.legend_fixed') }}</span>
     <span class="flex items-center gap-1 font-medium"><x-icon.sunrise class="size-3.5" /> {{ __('calendar.legend_early') }}</span>
     <span class="flex items-center gap-1 font-medium"><flux:icon.moon variant="micro" class="size-3.5" /> {{ __('calendar.legend_late') }}</span>
-    <span class="flex items-center gap-1 font-medium"><x-icon.parking class="size-3.5" /> {{ __('calendar.legend_parking') }}</span>
-    <span class="flex items-center gap-1 font-medium"><x-icon.breakfast class="size-3.5" /> {{ __('calendar.legend_breakfast') }}</span>
+    @if (\App\Models\Extra::enabled())
+        <span class="flex items-center gap-1 font-medium"><x-icon.parking class="size-3.5" /> {{ __('calendar.legend_parking') }}</span>
+        <span class="flex items-center gap-1 font-medium"><x-icon.breakfast class="size-3.5" /> {{ __('calendar.legend_breakfast') }}</span>
+    @endif
 </div>

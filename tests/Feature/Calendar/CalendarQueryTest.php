@@ -21,6 +21,8 @@ beforeEach(function () {
 });
 
 test('a reservation is placed on its slot columns with the spreadsheet lines', function () {
+
+    config(['extras.enabled' => true]);
     $guest = Guest::factory()->create(['first_name' => 'Martín', 'last_name' => 'Medina']);
     $reservation = Reservation::factory()
         ->for($this->apartment)->for($guest)->for($this->employee, 'employee')

@@ -190,9 +190,11 @@
                                     {{ $reservation->is_movable ? __('reservations.fields.movable') : __('calendar.fixed') }}
                                 </span>
                             </x-stat-tile>
-                            <x-stat-tile :label="__('reservations.panel.extras')">
-                                {{ $reservation->extras->isEmpty() ? __('reservations.panel.no_extras') : $reservation->extras->pluck('name')->join(', ') }}
-                            </x-stat-tile>
+                            @if (\App\Models\Extra::enabled())
+                                <x-stat-tile :label="__('reservations.panel.extras')">
+                                    {{ $reservation->extras->isEmpty() ? __('reservations.panel.no_extras') : $reservation->extras->pluck('name')->join(', ') }}
+                                </x-stat-tile>
+                            @endif
                         </div>
 
                         @if ($reservation->early_check_in || $reservation->late_check_out)
@@ -206,33 +208,60 @@
                             </p>
                         @endif
 
-                        {{-- Each payment with its "Facturado": always editable, also on a cancelled reservation. --}}
-                        @if ($reservation->payments->isNotEmpty())
-                            <section class="flex flex-col gap-2">
-                                <x-section-title>{{ __('reservations.panel.payments') }}</x-section-title>
-                                <ul class="flex flex-col divide-y divide-divider rounded-ui border border-divider">
-                                    @foreach ($reservation->payments as $payment)
-                                        <li wire:key="paid-{{ $payment->id }}" class="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2" data-test="invoicing-row">
-                                            <span class="font-bold text-ink">{{ Format::money($payment->amount) }}</span>
-                                            @if ($payment->method)
-                                                <span class="text-[13px] text-ink-2">{{ $payment->method->label() }}</span>
-                                            @else
-                                                <span class="inline-flex rounded-[3px] bg-warning-bg px-2 py-0.5 text-xs font-bold text-warning-badge">{{ __('reservations.panel.no_method') }}</span>
+                        {{-- What was paid, each payment with its "Facturado" (always editable, also on a cancelled
+                             reservation), and "Agregar pago" without going through the whole edit. --}}
+                        @if ($reservation->payments->isNotEmpty() || ! $cancelled)
+                            <section class="flex flex-col gap-2" data-test="payments-section">
+                                <div class="flex flex-wrap items-baseline justify-between gap-2">
+                                    <x-section-title>{{ __('reservations.panel.payments') }}</x-section-title>
+                                    @if ($reservation->paidAmount() !== null)
+                                        <span class="text-[13px] text-ink-2">
+                                            {{ __('reservations.panel.paid_total', ['amount' => Format::money($reservation->paidAmount())]) }}
+                                            @if (($balance = $reservation->balance()) !== null && $balance > 0)
+                                                · <strong class="font-semibold text-ink">{{ __('reservations.create.balance', ['amount' => Format::money($balance)]) }}</strong>
                                             @endif
-                                            <x-invoiced-badge :invoiced="$payment->isInvoiced()" />
-                                            <span class="min-w-0 flex-1 basis-40 text-[13px] text-subtle">
-                                                @if ($payment->isInvoiced())
-                                                    {{ __('reservations.invoicing.by', ['name' => $payment->invoicedBy?->name ?? '—', 'date' => Format::date($payment->invoiced_at, true)]) }}
+                                        </span>
+                                    @endif
+                                </div>
+
+                                @if ($reservation->payments->isNotEmpty())
+                                    <ul class="flex flex-col divide-y divide-divider rounded-ui border border-divider">
+                                        @foreach ($reservation->payments as $payment)
+                                            <li wire:key="paid-{{ $payment->id }}" class="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2" data-test="invoicing-row">
+                                                <span class="font-bold text-ink">{{ Format::money($payment->amount) }}</span>
+                                                @if ($payment->method)
+                                                    <span class="text-[13px] text-ink-2">{{ $payment->method->label() }}</span>
                                                 @else
-                                                    {{ __('reservations.invoicing.pending_help') }}
+                                                    <span class="inline-flex rounded-[3px] bg-warning-bg px-2 py-0.5 text-xs font-bold text-warning-badge">{{ __('reservations.panel.no_method') }}</span>
                                                 @endif
-                                            </span>
-                                            <flux:button size="sm" wire:click="toggleInvoiced({{ $payment->id }})" class="max-sm:w-full" data-test="toggle-invoiced">
-                                                {{ $payment->isInvoiced() ? __('reservations.invoicing.unmark') : __('reservations.invoicing.mark') }}
-                                            </flux:button>
-                                        </li>
-                                    @endforeach
-                                </ul>
+                                                <span class="text-xs text-subtle">{{ Format::date($payment->created_at, true) }}</span>
+                                                <x-invoiced-badge :invoiced="$payment->isInvoiced()" />
+                                                <span class="min-w-0 flex-1 basis-40 text-[13px] text-subtle">
+                                                    @if ($payment->isInvoiced())
+                                                        {{ __('reservations.invoicing.by', ['name' => $payment->invoicedBy?->name ?? '—', 'date' => Format::date($payment->invoiced_at, true)]) }}
+                                                    @else
+                                                        {{ __('reservations.invoicing.pending_help') }}
+                                                    @endif
+                                                </span>
+                                                <flux:button size="sm" wire:click="toggleInvoiced({{ $payment->id }})" class="max-sm:w-full" data-test="toggle-invoiced">
+                                                    {{ $payment->isInvoiced() ? __('reservations.invoicing.unmark') : __('reservations.invoicing.mark') }}
+                                                </flux:button>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                @else
+                                    <p class="text-[13px] text-subtle">{{ __('reservations.panel.no_payments') }}</p>
+                                @endif
+
+                                @unless ($cancelled)
+                                    @if ($addingPayment)
+                                        @include('livewire.partials.add-payment')
+                                    @else
+                                        <div>
+                                            <flux:button size="sm" icon="plus" wire:click="startAddPayment" data-test="add-payment-button">{{ __('reservations.panel.add_payment') }}</flux:button>
+                                        </div>
+                                    @endif
+                                @endunless
                             </section>
                         @endif
 

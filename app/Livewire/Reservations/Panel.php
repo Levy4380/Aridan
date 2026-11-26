@@ -7,6 +7,7 @@ use App\Actions\Reservations\MoveReservation;
 use App\Actions\Reservations\SetInvoiced;
 use App\Actions\Reservations\UpdateReservation;
 use App\Domain\Warning;
+use App\Livewire\Concerns\AddsPayment;
 use App\Livewire\Concerns\EditsReservationDetails;
 use App\Livewire\Concerns\PicksGuest;
 use App\Models\Payment;
@@ -28,7 +29,7 @@ use Livewire\Component;
  */
 class Panel extends Component
 {
-    use EditsReservationDetails, PicksGuest;
+    use AddsPayment, EditsReservationDetails, PicksGuest;
 
     public const VIEW = 'view';
 
@@ -72,6 +73,7 @@ class Panel extends Component
     {
         $this->reservationId = $id;
         $this->mode = self::VIEW;
+        $this->addingPayment = false;
         $this->notice = null;
         $this->resetValidation();
         unset($this->reservation);
@@ -83,6 +85,7 @@ class Panel extends Component
         if (! $show) {
             $this->reservationId = null;
             $this->mode = self::VIEW;
+            $this->addingPayment = false;
             $this->notice = null;
         }
     }
@@ -109,6 +112,7 @@ class Panel extends Component
     public function back(): void
     {
         $this->mode = self::VIEW;
+        $this->addingPayment = false;
         $this->resetValidation();
     }
 
@@ -277,8 +281,9 @@ class Panel extends Component
 
     private function afterChange(?string $notice): void
     {
-        unset($this->reservation, $this->moveOptions);
+        unset($this->reservation, $this->moveOptions, $this->newPaymentOutcome, $this->newPaymentWarnings);
         $this->mode = self::VIEW;
+        $this->addingPayment = false;
         $this->notice = $notice;
         $this->dispatch('reservation-changed');
     }

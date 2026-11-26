@@ -283,7 +283,7 @@ Son piezas del dominio que se repiten en varias pantallas. Son Blade anónimos (
 | Sigue en el mes anterior/siguiente | Chevron izq./der. | Heroicons `chevron-left/right` |
 | Buscar, agregar, cerrar, calendario | Lupa, +, ×, calendario | Heroicons |
 
-Los iconos de extras salen del catálogo: si se agrega un extra nuevo sin ícono, se muestra solo su nombre. Se mapea en `config/extras.php` (`'Cochera' => 'parking'`).
+Los extras están **apagados por ahora** (`extras.enabled`): no aparecen en bloques, leyenda, formulario ni detalle. Los iconos de extras salen del catálogo: si se agrega un extra nuevo sin ícono, se muestra solo su nombre. Se mapea en `config/extras.php` (`'Cochera' => 'parking'`).
 
 ---
 
@@ -361,7 +361,7 @@ Es un **panel lateral (flyout) de ~560px** que se abre sobre el calendario. Tamb
 
 **Contenido**
 1. **Encabezado:** muestra del color + "Responsable: Tomás · 02/11/2026"; nombre del huésped en 22px (tachado si está cancelada); "Depto 205 · dom 8/11 (tarde) al jue 12/11 (mañana) · 4 noches"; botón × para cerrar.
-2. **Tiles 2×2:** Personas ("3 · capacidad 4"), Pago ("Pagado · $200.000", o "Señado · $80.000 de $200.000" + "faltan $120.000"), Condición ("No movible", con candado, o "Movible"), Extras ("Ninguno" o la lista).
+2. **Tiles 2×2:** Personas ("3 · capacidad 4"), Pago ("Pagado · $200.000", o "Señado · $80.000 de $200.000" + "faltan $120.000"), Condición ("No movible", con candado, o "Movible"), Extras ("Ninguno" o la lista; solo con `extras.enabled`, hoy apagado).
 3. **Cliente:** `<x-guest-card>` con "Ver ficha" (abre el drawer en Clientes).
 4. **Nota de la reserva:** el texto libre tal cual.
 5. **Acciones:** **Editar** (primario) · **Mover de departamento** (secundario) · **Cancelar reserva** (texto rojo, borde rojo suave, alineado a la derecha).
@@ -377,6 +377,8 @@ Es un **panel lateral (flyout) de ~560px** que se abre sobre el calendario. Tamb
 - **Mover** usa `AvailabilityQuery` + `ApartmentSuggestions` con las fechas de la reserva, excluyéndola a ella misma, y ejecuta `MoveReservation`. El checkbox "Moverla igual" es la confirmación de la advertencia `not_movable`.
 - **Cancelar** ejecuta `CancelReservation`. El calendario se refresca (evento Livewire `reservation-changed`) y el bloque desaparece.
 - El botón "Deshacer (demo)" del mockup es solo para la demo: **no se implementa**.
+
+**Pagos en el detalle:** sección **Pagos** con "Cobrado: $X · faltan $Y" y un renglón por pago (monto, tipo, fecha, badge Facturado / No facturado, quién y cuándo, y el botón para cambiarlo, también en canceladas). Si no está cancelada, **Agregar pago** abre ahí mismo el formulario "Nuevo pago" (`AddsPayment` → `AddPayment`): monto, tipo y Facturado. Si la reserva está Reservada, pide en qué queda (Señado / Pagado) y, si es Señado, el total; si está Señada sin total, también pide el total. Si el pago llega al total de una señada, ofrece **"Marcar la reserva como Pagada"** ya tildado; el empleado decide. Las advertencias (`missing_amount`, `missing_total`, `deposit_covers_total`) se confirman con "Guardar igual".
 
 ### 5.3 Panel de reserva: Editar
 
@@ -429,7 +431,7 @@ Se abre al tocar "Reservar". Recibe las fechas, personas, flags y el depto elegi
 | Departamento | Radio de **3 opciones**: el elegido + los mejores siguientes, en orden de ranking, con el elegido marcado y "Mejor opción" en el primero | Se puede cambiar sin volver al buscador. |
 | Cliente | `GuestPicker` (ver 5.5) | Obligatorio. |
 | Pago | **Un solo bloque con borde, con todo lo del pago.** Segmentado **Reservado / Señado / Pagado** (por defecto Señado). Con Señado: **Total de la reserva**. Con Señado o Pagado: uno o más renglones de pago, cada uno con **Monto**, **Tipo de pago** (Transferencia / Efectivo), checkbox **Facturado** y "Quitar" (si hay más de uno); botón **Agregar otro pago**; resumen en vivo "Cobrado $80.000 de $200.000 · faltan $120.000" (o "Cobrado: $X" sin total). Con Reservado: "Sin pago todavía: los pagos se cargan cuando se seña o se paga." | Advertencias `missing_amount`, `missing_total` y `deposit_covers_total`. Un renglón sin monto no se guarda. |
-| Condiciones | Checkbox **Movible** (marcado por defecto) + explicación; toggles **Cochera** y **Desayuno**; stepper **Colchones extra** (0–6) | Si `personas > capacidad + colchones`: callout naranja **en vivo**, "El 104 es para 2 y son 3: falta 1 lugar. Sumá un colchón extra." |
+| Condiciones | Checkbox **Movible** (marcado por defecto) + explicación; toggles **Cochera** y **Desayuno** (solo con `extras.enabled`, hoy apagado); stepper **Colchones extra** (0–6) | Si `personas > capacidad + colchones`: callout naranja **en vivo**, "El 104 es para 2 y son 3: falta 1 lugar. Sumá un colchón extra." |
 | Responsable y nota | Selector de empleado (muestra de color + nombre), con los empleados activos; debajo, textarea **Nota de la reserva** con placeholder "Preferencias, horario de llegada, reserva familiar…" | Responsable: por defecto el usuario autenticado; se cambia cuando se carga una reserva que hizo otro empleado. Nota: opcional. |
 | Pie | **Cancelar** · **Guardar reserva** | |
 

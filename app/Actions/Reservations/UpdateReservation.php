@@ -4,6 +4,7 @@ namespace App\Actions\Reservations;
 
 use App\Actions\Reservations\Concerns\ValidatesReservations;
 use App\Domain\StayRange;
+use App\Models\Extra;
 use App\Models\Guest;
 use App\Models\Reservation;
 use App\Models\User;
@@ -46,7 +47,9 @@ class UpdateReservation
                 'guest_id' => $guestId,
             ]);
 
-            $reservation->extras()->sync($data['extra_ids']);
+            if (Extra::enabled()) {
+                $reservation->extras()->sync($data['extra_ids']);
+            }
             $this->syncPayments($reservation, $data['payments'], $by);
 
             return $reservation->refresh();

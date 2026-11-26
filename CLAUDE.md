@@ -123,9 +123,10 @@ Cada reserva tiene:
 - **Cantidad de personas** (entero). Si se habla de un rango ("3 o 4"), se carga el máximo.
 - **Estado de pago:** *Reservado* (sin pago), *Señado* (parcial) o *Pagado* (total).
 - **Pagos:** cuando está señada o pagada, lo cobrado se carga como **uno o más pagos**, cada uno con su **monto** y su **tipo de pago** (transferencia o efectivo). Ej.: la seña por transferencia y el resto en efectivo son dos pagos. Lo cobrado es la suma.
+- **Agregar un pago** (ej. el resto al hacer el check-in) se hace desde el detalle de la reserva, sin entrar a editarla. Si con ese pago se llega al total, se ofrece pasarla a Pagado; si estaba Reservada, se elige si queda Señada o Pagada.
 - **Total de la reserva:** solo cuando está **señada**, lo acordado en total; con lo cobrado se muestra cuánto falta. Si falta, es una advertencia. El estado de pago **lo elige siempre el empleado**: el sistema no lo pasa a Pagado solo, avisa si lo cobrado ya cubre el total.
 - **Facturado** (sí / no), **por pago**: si se emitió la factura de ese pago. Se carga junto a cada pago y **se puede cambiar siempre**: cualquiera sea el estado de pago, y también en una reserva cancelada. Queda registrado quién lo marcó y cuándo.
-- **Extras:** checkboxes. Primera iteración: **cochera** y **desayuno**.
+- **Extras:** checkboxes. Primera iteración: **cochera** y **desayuno**. **Hoy están desactivados** (las reservas no los incluyen): el flujo queda en el código, oculto detrás de `extras.enabled` (`EXTRAS_ENABLED`, apagado por defecto). Apagado, no se muestran en el formulario, el detalle ni el calendario, y guardar una reserva no toca los extras que ya tuviera. No borrar ese código.
 - **Colchones extra:** contador desde 0, para cuando hay más personas que capacidad.
 - **Movible** (booleano explícito que carga el empleado): si la reserva se puede cambiar de departamento. Deja de ser movible cuando el huésped pidió ese depto puntual o se le ofreció ese depto en particular (ej. se le mostraron fotos). No se guarda el motivo, solo la consecuencia.
 - **Observaciones:** texto libre, solo informativo. Las reservas internas (familia, cortesía) son reservas normales identificadas con una nota.

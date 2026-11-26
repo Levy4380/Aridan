@@ -119,6 +119,8 @@ Lo cobrado de una reserva, en uno o más pagos (ej. la seña por transferencia y
 `Reservation::paidAmount()` es la suma (o `null` sin pagos) y `Reservation::balance()` lo que falta del total cuando está señada.
 
 ### `extras` y `extra_reservation`
+
+> **Desactivados por ahora** con `config('extras.enabled')` (`EXTRAS_ENABLED=false`, `Extra::enabled()`). Las tablas y el código quedan; apagado, `CreateReservation` / `UpdateReservation` no sincronizan `extra_ids` y `CalendarQuery` no los carga.
 | `extras` | Tipo | Notas |
 |---|---|---|
 | id | bigint PK | |
@@ -178,6 +180,7 @@ Cada action es una clase invocable en `app/Actions`, con una única responsabili
 | `DeactivateApartment` | Pone `is_active = false`. | El departamento tiene reservas futuras (`end_slot > currentSlot`). |
 | `DeleteApartment` | Borra el depto para siempre, con sus reservas pasadas y canceladas (`forceDelete`; pagos y extras caen en cascada). Bloquea el depto con `lockForUpdate` mientras chequea. | Tiene reservas futuras o en curso, igual que `DeactivateApartment`. |
 | `ActivateApartment` | Pone `is_active = true`. | — |
+| `AddPayment` | Agrega un pago desde el detalle de la reserva, sin pasar por la edición completa, y guarda el estado que eligió el empleado (`deposit` o `paid`); el total solo se mantiene si queda señada. | La reserva está cancelada; el monto no es mayor a 0; el estado no es señado ni pagado. |
 | `SetInvoiced` | Marca un **pago** como facturado o no, con quién y cuándo. | — (se puede cambiar siempre, también en canceladas) |
 | `SaveGuest` (`app/Actions/Guests`) | Alta y edición de un cliente desde la pantalla Clientes. | Falta nombre, apellido o teléfono; el teléfono o el DNI/CUIT (normalizados) ya son de otro cliente. |
 | `DeleteGuest` (`app/Actions/Guests`) | Borra el cliente para siempre. | Tiene alguna reserva, contando las canceladas. |

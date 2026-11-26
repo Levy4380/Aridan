@@ -46,6 +46,7 @@ beforeEach(function () {
 
 describe('update', function () {
     test('payment, conditions, note and extras can be edited', function () {
+        config(['extras.enabled' => true]);
         $breakfast = Extra::create(['name' => 'Desayuno']);
 
         app(UpdateReservation::class)($this->reservation, payloadFrom($this->reservation, [

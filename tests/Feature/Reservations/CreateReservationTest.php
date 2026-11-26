@@ -55,6 +55,8 @@ function errorsOf(callable $callback): array
 }
 
 test('a reservation is created for an existing guest, with its extras', function () {
+
+    config(['extras.enabled' => true]);
     $parking = Extra::create(['name' => 'Cochera']);
 
     $reservation = app(CreateReservation::class)(reservationInput(['extra_ids' => [$parking->id], 'notes' => ' Puede ser sin balcón ']));

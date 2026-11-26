@@ -88,7 +88,7 @@ class DemoSeeder extends Seeder
                     }
                 }
 
-                if ($extras->isNotEmpty() && fake()->boolean(30)) {
+                if (Extra::enabled() && $extras->isNotEmpty() && fake()->boolean(30)) {
                     $reservation->extras()->attach($extras->random(fake()->numberBetween(1, $extras->count()))->pluck('id'));
                 }
 

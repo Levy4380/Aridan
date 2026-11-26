@@ -84,7 +84,8 @@
     <flux:checkbox wire:model="is_movable" :label="__('reservations.fields.movable')" :description="__('reservations.fields.movable_help')" />
 
     <div class="flex flex-wrap items-end gap-3">
-        @foreach ($this->extras as $extra)
+        {{-- Extras are off for now (config/extras.php): the toggles come back when enabled. --}}
+        @foreach (\App\Models\Extra::enabled() ? $this->extras : [] as $extra)
             @php($pressed = in_array($extra->id, $extra_ids, true))
             <button
                 type="button"

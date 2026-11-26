@@ -22,6 +22,15 @@ class Extra extends Model
         return ['is_active' => 'boolean'];
     }
 
+    /**
+     * Whether the extras flow is on (config/extras.php). While off, the UI
+     * hides them and saving a reservation leaves its extras untouched.
+     */
+    public static function enabled(): bool
+    {
+        return (bool) config('extras.enabled');
+    }
+
     public function icon(): ?string
     {
         return config('extras.icons.'.$this->name);

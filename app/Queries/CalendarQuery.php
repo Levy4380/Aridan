@@ -4,6 +4,7 @@ namespace App\Queries;
 
 use App\Domain\StayRange;
 use App\Models\Apartment;
+use App\Models\Extra;
 use App\Models\Holiday;
 use App\Models\Reservation;
 use App\Models\User;
@@ -43,7 +44,8 @@ class CalendarQuery
 
         $reservations = Reservation::query()
             ->overlappingSlots($windowStart, $windowEnd)
-            ->with(['guest', 'employee', 'extras', 'apartment', 'payments'])
+            ->with(['guest', 'employee', 'apartment', 'payments'])
+            ->when(Extra::enabled(), fn ($query) => $query->with('extras'))
             ->orderBy('start_slot')
             ->get();
 
@@ -132,10 +134,9 @@ class CalendarQuery
             isMovable: $reservation->is_movable,
             earlyCheckIn: $reservation->early_check_in,
             lateCheckOut: $reservation->late_check_out,
-            extras: $reservation->extras
-                ->map(fn ($extra) => ['name' => $extra->name, 'icon' => $extra->icon()])
-                ->values()
-                ->all(),
+            extras: Extra::enabled()
+                ? $reservation->extras->map(fn ($extra) => ['name' => $extra->name, 'icon' => $extra->icon()])->values()->all()
+                : [],
             ariaLabel: __('calendar.block_label', [
                 'number' => $apartment->number,
                 'guest' => $guestName,
