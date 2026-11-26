@@ -563,6 +563,15 @@ El input de monto acepta "$ 80.000", "80000" o "80.000" y lo normaliza al guarda
 
 ---
 
+### Instalable en el celular (PWA, sobre todo iOS)
+
+- Se puede agregar a la pantalla de inicio y se abre como app, sin barra del navegador. En iOS (16.4 o posterior), desde Safari o Chrome: Compartir → **Agregar a inicio** (en iOS todos los navegadores usan WebKit, así que la app instalada es la misma; antes de 16.4, solo Safari). En Android, Chrome ofrece **Instalar app**.
+- `public/manifest.webmanifest`: `display: standalone`, abre en `/calendario` (`start_url`), `scope: /`, fondo `canvas` (#f4f4f1) y `theme_color` blanco, como el header.
+- Íconos: la marca del header, una "A" en Space Grotesk 700 blanca sobre `ink` (#15171a). Están `public/apple-touch-icon.png` (180, la que usa iOS), `public/icons/icon-192.png` / `icon-512.png` (`any`), `icon-maskable-512.png` (con la letra dentro de la zona segura) y `favicon.ico` (16/32/48, con esquinas redondeadas). Si cambia la marca, se regeneran los PNG.
+- En `partials/head`: `<link rel="manifest">`, `apple-touch-icon`, `apple-mobile-web-app-capable`, `apple-mobile-web-app-title` y `apple-mobile-web-app-status-bar-style` (`default`: barra de estado clara, el contenido empieza debajo).
+- **Atajo "Instalar app"** en el menú de la cuenta (`resources/js/app.js`, `window.aridanInstall`): donde el navegador lo permite (Chrome en Android o escritorio) abre su diálogo de instalación (`beforeinstallprompt`); si no, en iOS por ejemplo, abre el drawer "Instalar Aridan" con los pasos (Compartir → Agregar a inicio → Agregar; en otros navegadores, menú ⋮ → Instalar app). No aparece cuando ya se abrió como app instalada.
+- **Sin modo offline por ahora:** no hay service worker. Sin conexión, la app no carga.
+
 ## 7. Estructura de carpetas
 
 ```

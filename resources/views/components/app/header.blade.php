@@ -95,6 +95,17 @@
                 <flux:menu.item :href="route('profile.edit')" icon="user" wire:navigate>
                     {{ __('nav.profile') }}
                 </flux:menu.item>
+                {{-- Hidden once opened as an installed app. Native prompt where there is one; otherwise the steps (iOS). --}}
+                <flux:menu.item
+                    icon="device-phone-mobile"
+                    x-data
+                    x-show="! window.aridanInstall?.isInstalled()"
+                    x-on:click="window.aridanInstall?.prompt().then((shown) => shown || $flux.modal('install-app').show())"
+                    class="cursor-pointer"
+                    data-test="install-app-button"
+                >
+                    {{ __('nav.install.button') }}
+                </flux:menu.item>
                 <form method="POST" action="{{ route('logout') }}" class="w-full">
                     @csrf
                     <flux:menu.item as="button" type="submit" icon="arrow-right-start-on-rectangle" class="w-full cursor-pointer" data-test="logout-button">
@@ -104,4 +115,51 @@
             </flux:menu>
         </flux:dropdown>
     </div>
+
+    {{-- How to install it, for browsers that can't do it from the page (iOS). A drawer, like everything else. --}}
+    <flux:modal name="install-app" variant="flyout" class="w-full max-md:max-w-none max-md:p-5 md:w-[480px]" data-test="install-app-drawer">
+        <div class="flex flex-col gap-5" x-data="{ ios: window.aridanInstall?.isIos() ?? false }">
+            <div class="flex items-center gap-3 pe-8">
+                <img src="/apple-touch-icon.png" alt="" class="size-12 rounded-[11px]" />
+                <div>
+                    <h2 class="text-[20px] font-bold text-ink">{{ __('nav.install.title', ['app' => config('app.name')]) }}</h2>
+                    <p class="text-[13px] text-subtle">{{ __('nav.install.intro') }}</p>
+                </div>
+            </div>
+
+            <ol class="flex flex-col gap-3 text-sm text-ink-2" x-show="ios">
+                <li class="flex items-start gap-3">
+                    <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-bold text-accent">1</span>
+                    <span>{!! __('nav.install.ios_share') !!} <flux:icon.arrow-up-on-square variant="mini" class="inline size-4 align-text-bottom text-accent" /> {{ __('nav.install.ios_share_where') }}</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-bold text-accent">2</span>
+                    <span>{!! __('nav.install.ios_add') !!}</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-bold text-accent">3</span>
+                    <span>{!! __('nav.install.ios_confirm') !!}</span>
+                </li>
+            </ol>
+
+            <ol class="flex flex-col gap-3 text-sm text-ink-2" x-show="! ios" x-cloak>
+                <li class="flex items-start gap-3">
+                    <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-bold text-accent">1</span>
+                    <span>{!! __('nav.install.other_menu') !!}</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-bold text-accent">2</span>
+                    <span>{!! __('nav.install.other_add') !!}</span>
+                </li>
+            </ol>
+
+            <p class="rounded-ui bg-canvas p-3 text-[13px] text-subtle">{{ __('nav.install.after') }}</p>
+
+            <div class="flex justify-end">
+                <flux:modal.close>
+                    <flux:button variant="primary">{{ __('nav.install.done') }}</flux:button>
+                </flux:modal.close>
+            </div>
+        </div>
+    </flux:modal>
 </header>
